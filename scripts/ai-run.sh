@@ -49,13 +49,13 @@ detect_ai_cli() {
                 ;;
             --use-antigravity)
                 if command -v antigravity &> /dev/null; then
-                    AI_CLI="antigravity"
+                    AI_CLI="antigravity chat"
                     AI_NAME="Antigravity"
                     CMD_PROPOSAL="/openspec-proposal"
                     CMD_APPLY="/openspec-apply"
                     return 0
                 elif command -v anty &> /dev/null; then
-                    AI_CLI="anty"
+                    AI_CLI="anty chat"
                     AI_NAME="Antigravity (anty)"
                     CMD_PROPOSAL="/openspec-proposal"
                     CMD_APPLY="/openspec-apply"
@@ -73,12 +73,12 @@ detect_ai_cli() {
         AI_CLI="claude"
         AI_NAME="Claude Code"
     elif command -v antigravity &> /dev/null; then
-        AI_CLI="antigravity"
+        AI_CLI="antigravity chat"
         AI_NAME="Antigravity"
         CMD_PROPOSAL="/openspec-proposal"
         CMD_APPLY="/openspec-apply"
     elif command -v anty &> /dev/null; then
-        AI_CLI="anty"
+        AI_CLI="anty chat"
         AI_NAME="Antigravity (anty)"
         CMD_PROPOSAL="/openspec-proposal"
         CMD_APPLY="/openspec-apply"

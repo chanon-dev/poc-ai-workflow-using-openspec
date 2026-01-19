@@ -30,10 +30,10 @@ if command -v claude &> /dev/null; then
     AI_CLI="claude"
     CMD_APPLY="/openspec:apply"
 elif command -v antigravity &> /dev/null; then
-    AI_CLI="antigravity"
+    AI_CLI="antigravity chat"
     CMD_APPLY="/openspec-apply"
 elif command -v anty &> /dev/null; then
-    AI_CLI="anty"
+    AI_CLI="anty chat"
     CMD_APPLY="/openspec-apply"
 else
     echo -e "${RED}ERROR: No AI CLI found (claude, antigravity, or anty)${NC}"

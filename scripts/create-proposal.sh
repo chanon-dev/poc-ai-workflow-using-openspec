@@ -30,11 +30,11 @@ if command -v claude &> /dev/null; then
     CMD_PROPOSAL="/openspec:proposal"
     CMD_APPLY="/openspec:apply"
 elif command -v antigravity &> /dev/null; then
-    AI_CLI="antigravity"
+    AI_CLI="antigravity chat"
     CMD_PROPOSAL="/openspec-proposal"
     CMD_APPLY="/openspec-apply"
 elif command -v anty &> /dev/null; then
-    AI_CLI="anty"
+    AI_CLI="anty chat"
     CMD_PROPOSAL="/openspec-proposal"
     CMD_APPLY="/openspec-apply"
 else
