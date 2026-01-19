@@ -62,6 +62,12 @@ The `ai-run.sh` script orchestrates the following process:
     - If pending changes are found, it runs `scripts/create-proposal.sh`.
     - Uses the agent (e.g., `/openspec:proposal` or `/openspec-proposal` for Antigravity) to generate a detailed implementation plan in `openspec/changes/`.
 3. **Review**: (User intervention usually happens here, but the script can be interactive).
+
+    > **Note for Antigravity Users**:
+    > When using Antigravity, the script will launch a chat session in your code editor and **pause**.
+    > 1. Complete the task in the editor (the prompt is sent automatically).
+    > 2. Return to the terminal.
+    > 3. Press **Enter** to resume the script.
 4. **Implementation**:
     - Runs `scripts/apply-change.sh`.
     - Uses the agent (e.g., `/openspec:apply` or `/openspec-apply` for Antigravity) to write code and update configurations.

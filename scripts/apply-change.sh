@@ -88,7 +88,16 @@ echo ""
 echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
 
 cd "$PROJECT_ROOT"
-$AI_CLI "$CMD_APPLY $CHANGE_ID"
+
+if [[ "$AI_CLI" == *"antigravity"* ]] || [[ "$AI_CLI" == *"anty"* ]]; then
+    echo -e "${YELLOW}🚀 Launching Antigravity Chat in your editor...${NC}"
+    $AI_CLI "$CMD_APPLY $CHANGE_ID"
+    echo ""
+    echo -e "${YELLOW}The script is paused. Please complete the implementation in the editor.${NC}"
+    read -p "Press [Enter] when done..."
+else
+    $AI_CLI "$CMD_APPLY $CHANGE_ID"
+fi
 
 echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
 echo ""

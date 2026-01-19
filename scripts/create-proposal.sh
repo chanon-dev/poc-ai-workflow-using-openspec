@@ -66,7 +66,16 @@ echo ""
 echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
 
 cd "$PROJECT_ROOT"
-$AI_CLI "$CMD_PROPOSAL"
+
+if [[ "$AI_CLI" == *"antigravity"* ]] || [[ "$AI_CLI" == *"anty"* ]]; then
+    echo -e "${YELLOW}🚀 Launching Antigravity Chat in your editor...${NC}"
+    $AI_CLI "$CMD_PROPOSAL"
+    echo ""
+    echo -e "${YELLOW}The script is paused. Please complete the proposal generation in the editor.${NC}"
+    read -p "Press [Enter] when done..."
+else
+    $AI_CLI "$CMD_PROPOSAL"
+fi
 
 echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
 echo ""

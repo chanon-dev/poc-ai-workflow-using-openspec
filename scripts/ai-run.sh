@@ -100,7 +100,17 @@ run_ai() {
     local prompt="$1"
     echo -e "${CYAN}Using: $AI_NAME ($AI_CLI)${NC}"
     echo ""
-    $AI_CLI "$prompt"
+    
+    if [[ "$AI_CLI" == *"antigravity"* ]] || [[ "$AI_CLI" == *"anty"* ]]; then
+        echo -e "${YELLOW}🚀 Launching Antigravity Chat in your editor...${NC}"
+        $AI_CLI "$prompt"
+        echo ""
+        echo -e "${YELLOW}The script is paused while you use the chat.${NC}"
+        echo -e "${YELLOW}Once you have finished the task in the editor, come back here.${NC}"
+        read -p "Press [Enter] to continue..."
+    else
+        $AI_CLI "$prompt"
+    fi
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
