@@ -12,18 +12,21 @@ Before running data migration, we need a reliable way to:
 ## What Changes
 
 - **NEW** `oracle-connectivity` capability — Oracle connection service and test DAG
-  - Oracle connection service with connection pooling
-  - Health check functionality
+  - **Callable Service Layer** — OracleService as single entry point for all Oracle operations
+  - **Service Interface Methods** — Standardized API: `get_connection()`, `execute_query()`, `get_pandas_df()`, `health_check()`, etc.
+  - Health check functionality (SELECT 1 FROM DUAL + version)
+  - Table access verification
   - Test DAG for manual connection verification
-  - Permission validation for migration tables
+  - Thick/Thin mode support with multi-architecture (x64/ARM64)
 
 ## Impact
 
 - **Affected specs:** oracle-connectivity (NEW)
 - **Affected code:**
-  - `plugins/oracle_service.py` — Connection service
+  - `plugins/oracle_service.py` — Connection service (central abstraction)
+  - `plugins/oracle_extractor.py` — Should use OracleService (not OracleHook)
   - `dags/test_oracle_connection_dag.py` — Test DAG
-- **Dependencies:** cx_Oracle, Apache Airflow OracleProvider
+- **Dependencies:** oracledb
 
 ## References
 

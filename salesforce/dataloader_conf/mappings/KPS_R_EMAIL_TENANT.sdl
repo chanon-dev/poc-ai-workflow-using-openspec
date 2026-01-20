@@ -1,0 +1,5 @@
+# Mapping for KPS_R_EMAIL_TENANT
+TENANT_CODE=External_ID__c
+EMAIL_ADDRESS=Email_Address__c
+TENANT_NAME=Tenant_Name__c
+ACTIVE=Is_Active__c

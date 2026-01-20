@@ -1,0 +1,4 @@
+# Mapping for KPS_R_POS_SUPPLIER
+SUPPLIER_CODE=External_ID__c
+POS_ID=POS_ID__c
+SUPPLIER_NAME=Supplier_Name__c

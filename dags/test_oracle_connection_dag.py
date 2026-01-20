@@ -46,7 +46,11 @@ with DAG(
         - Connection can be established
         - Credentials are valid
         - Network connectivity works
+
+        Raises AirflowException if connection fails.
         """
+        from airflow.exceptions import AirflowException
+
         from oracle_service import OracleService
 
         service = OracleService(conn_id=ORACLE_CONN_ID)
@@ -55,30 +59,26 @@ with DAG(
         if result.healthy:
             print(f"Connection successful!")
             print(f"Oracle version: {result.version}")
-        else:
-            print(f"Connection failed: {result.error}")
+            return {
+                "healthy": result.healthy,
+                "version": result.version,
+                "error": result.error,
+            }
 
-        return {
-            "healthy": result.healthy,
-            "version": result.version,
-            "error": result.error,
-        }
+        # Fail the task if connection is not healthy
+        raise AirflowException(f"Oracle connection failed: {result.error}")
 
     @task()
-    def verify_tables(health_result: dict) -> dict:
+    def verify_tables() -> dict:
         """
         Verify read access to migration tables.
 
         Checks SELECT permission on all configured migration tables.
+        Raises AirflowException if any table is inaccessible.
         """
-        from oracle_service import OracleService
+        from airflow.exceptions import AirflowException
 
-        if not health_result.get("healthy"):
-            print("Skipping table verification - connection is not healthy")
-            return {
-                "skipped": True,
-                "reason": "Connection not healthy",
-            }
+        from oracle_service import OracleService
 
         service = OracleService(conn_id=ORACLE_CONN_ID)
         results = service.verify_table_access(TABLES_TO_VERIFY)
@@ -89,11 +89,19 @@ with DAG(
         print(f"Table access verification: {accessible_count}/{total_count} accessible")
         print("-" * 50)
 
+        failed_tables = []
         for table_name, result in results.items():
             status = "OK" if result.accessible else "FAILED"
             print(f"  {table_name}: {status}")
             if result.error:
                 print(f"    Error: {result.error}")
+            if not result.accessible:
+                failed_tables.append(table_name)
+
+        if failed_tables:
+            raise AirflowException(
+                f"Cannot access {len(failed_tables)} tables: {', '.join(failed_tables)}"
+            )
 
         return {
             "total_tables": total_count,
@@ -105,20 +113,16 @@ with DAG(
         }
 
     @task()
-    def run_sample_query(health_result: dict) -> dict:
+    def run_sample_query() -> dict:
         """
         Run sample queries on a few tables to verify data retrieval.
 
         Selects first table from each priority level for testing.
+        Raises AirflowException if any query fails.
         """
-        from oracle_service import OracleService
+        from airflow.exceptions import AirflowException
 
-        if not health_result.get("healthy"):
-            print("Skipping sample query - connection is not healthy")
-            return {
-                "skipped": True,
-                "reason": "Connection not healthy",
-            }
+        from oracle_service import OracleService
 
         service = OracleService(conn_id=ORACLE_CONN_ID)
 
@@ -131,6 +135,7 @@ with DAG(
                 seen_priorities.add(table.priority)
 
         results = {}
+        failed_tables = []
         for table_name in test_tables:
             result = service.run_sample_query(table_name, limit=3)
             results[table_name] = result
@@ -143,17 +148,20 @@ with DAG(
             else:
                 print(f"Sample query on {table_name} failed:")
                 print(f"  Error: {result['error']}")
+                failed_tables.append(table_name)
 
             print("-" * 50)
 
-        success_count = sum(1 for r in results.values() if r.get("success"))
+        if failed_tables:
+            raise AirflowException(
+                f"Sample query failed on {len(failed_tables)} tables: {', '.join(failed_tables)}"
+            )
+
         return {
             "tables_tested": len(test_tables),
-            "successful": success_count,
+            "successful": len(test_tables),
             "results": results,
         }
 
-    # DAG Flow
-    health = check_connection()
-    verify_tables(health)
-    run_sample_query(health)
+    # DAG Flow: check_connection -> verify_tables -> run_sample_query
+    check_connection() >> verify_tables() >> run_sample_query()

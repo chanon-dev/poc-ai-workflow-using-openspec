@@ -1,0 +1,8 @@
+# Mapping for KPS_T_SALES_M
+SALES_M_ID=External_ID__c
+TENANT_CODE=Tenant_Code__c
+STORE_CODE=Store_Code__c
+SALES_MONTH=Sales_Month__c
+TOTAL_AMOUNT=Total_Amount__c
+TOTAL_TRANSACTIONS=Total_Transactions__c
+CREATED_DATE=Oracle_Created_Date__c

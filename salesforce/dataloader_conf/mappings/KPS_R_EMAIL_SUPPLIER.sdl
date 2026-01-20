@@ -1,0 +1,4 @@
+# Mapping for KPS_R_EMAIL_SUPPLIER
+SUPPLIER_CODE=External_ID__c
+EMAIL_ADDRESS=Email_Address__c
+SUPPLIER_NAME=Supplier_Name__c

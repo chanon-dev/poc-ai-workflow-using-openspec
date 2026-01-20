@@ -1,23 +1,25 @@
 """
-Oracle Connection Service (Thin Mode)
+Oracle Connection Service
 
-Provides reusable Oracle connection management using oracledb in thin mode.
-No Oracle Instant Client required.
+Provides reusable Oracle connection management using oracledb.
+Supports both thin mode (no dependencies) and thick mode (requires Oracle Instant Client).
 REQ: openspec/changes/add-oracle-connection-test/specs/oracle-connectivity/spec.md
 """
 
 from __future__ import annotations
 
 import logging
+import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Generator
+from typing import Any, ClassVar, Generator
 
 import oracledb
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = 30  # seconds
+DEFAULT_INSTANT_CLIENT_PATH = "/opt/oracle/instantclient"
 
 
 @dataclass
@@ -38,47 +40,34 @@ class TableAccessResult:
     error: str | None = None
 
 
-def _get_connection_params(conn_id: str) -> dict[str, Any]:
-    """
-    Get connection parameters from Airflow Connection.
-
-    Args:
-        conn_id: Airflow connection ID
-
-    Returns:
-        Dict with user, password, dsn
-    """
-    from airflow.hooks.base import BaseHook
-
-    conn = BaseHook.get_connection(conn_id)
-
-    # Build DSN: host:port/service_name
-    host = conn.host or "localhost"
-    port = conn.port or 1521
-    service_name = conn.schema or conn.extra_dejson.get("service_name", "ORCL")
-
-    dsn = f"{host}:{port}/{service_name}"
-
-    return {
-        "user": conn.login,
-        "password": conn.password,
-        "dsn": dsn,
-    }
-
-
 class OracleService:
     """
-    Oracle connection service using oracledb thin mode.
+    Oracle connection service using oracledb.
 
-    Thin mode does not require Oracle Instant Client installation.
-    Retrieves credentials from Airflow Connections (not hardcoded).
-    Provides health check and table access verification capabilities.
+    Features:
+    - Lazy initialization of Oracle Client (only when first connection is made)
+    - Supports thick mode (with Oracle Instant Client) and thin mode fallback
+    - Retrieves credentials from Airflow Connections (not hardcoded)
+    - Provides health check and table access verification capabilities
+    - Thread-safe client initialization
+
+    Usage:
+        service = OracleService(conn_id="oracle_kpc")
+        result = service.health_check()
+        if result.healthy:
+            print(f"Connected to Oracle: {result.version}")
     """
+
+    # Class-level state for Oracle Client initialization
+    _client_initialized: ClassVar[bool] = False
+    _client_init_lock: ClassVar[threading.Lock] = threading.Lock()
+    _thick_mode_enabled: ClassVar[bool] = False
 
     def __init__(
         self,
         conn_id: str = "oracle_kpc",
         timeout: int = DEFAULT_TIMEOUT,
+        instant_client_path: str = DEFAULT_INSTANT_CLIENT_PATH,
     ):
         """
         Initialize Oracle service.
@@ -86,14 +75,114 @@ class OracleService:
         Args:
             conn_id: Airflow connection ID for Oracle database
             timeout: Connection timeout in seconds (default: 30)
+            instant_client_path: Path to Oracle Instant Client (default: /opt/oracle/instantclient)
         """
         self.conn_id = conn_id
         self.timeout = timeout
+        self.instant_client_path = instant_client_path
+
+    @classmethod
+    def _ensure_client_initialized(cls, instant_client_path: str) -> None:
+        """
+        Initialize Oracle Client for thick mode (lazy, thread-safe).
+
+        This method is called automatically before the first connection.
+        It only runs once per process, regardless of how many OracleService instances exist.
+
+        Args:
+            instant_client_path: Path to Oracle Instant Client libraries
+        """
+        if cls._client_initialized:
+            return
+
+        with cls._client_init_lock:
+            # Double-check after acquiring lock
+            if cls._client_initialized:
+                return
+
+            try:
+                oracledb.init_oracle_client(lib_dir=instant_client_path)
+                cls._thick_mode_enabled = True
+                logger.info(
+                    f"Oracle Client initialized (thick mode) from: {instant_client_path}"
+                )
+            except Exception as e:
+                cls._thick_mode_enabled = False
+                logger.warning(
+                    f"Failed to initialize Oracle Client: {e}. Using thin mode."
+                )
+
+            cls._client_initialized = True
+
+    @classmethod
+    def is_thick_mode(cls) -> bool:
+        """Check if thick mode is enabled."""
+        return cls._thick_mode_enabled
+
+    @classmethod
+    def reset_client(cls) -> None:
+        """
+        Reset client initialization state (for testing purposes only).
+
+        Warning: This should only be used in tests. In production,
+        Oracle Client can only be initialized once per process.
+        """
+        with cls._client_init_lock:
+            cls._client_initialized = False
+            cls._thick_mode_enabled = False
+
+    def _get_connection_params(self) -> dict[str, Any]:
+        """
+        Get connection parameters from Airflow Connection.
+
+        Supports both Service Name and SID:
+        - Service Name: use Schema field or extra.service_name
+        - SID: use extra.sid
+
+        Returns:
+            Dict with user, password, dsn
+        """
+        from airflow.hooks.base import BaseHook
+
+        conn = BaseHook.get_connection(self.conn_id)
+
+        host = conn.host or "localhost"
+        port = conn.port or 1521
+        extra = conn.extra_dejson or {}
+
+        # Check if SID is specified (takes priority)
+        sid = extra.get("sid")
+        if sid:
+            # SID format: use makedsn
+            dsn = oracledb.makedsn(host, port, sid=sid)
+        else:
+            # Service Name format: host:port/service_name
+            service_name = conn.schema or extra.get("service_name", "ORCL")
+            dsn = f"{host}:{port}/{service_name}"
+
+        return {
+            "user": conn.login,
+            "password": conn.password,
+            "dsn": dsn,
+        }
 
     @contextmanager
-    def _get_connection(self) -> Generator[oracledb.Connection, None, None]:
-        """Get oracledb connection (thin mode)."""
-        params = _get_connection_params(self.conn_id)
+    def get_connection(self) -> Generator[oracledb.Connection, None, None]:
+        """
+        Get oracledb connection with automatic client initialization.
+
+        Yields:
+            oracledb.Connection: Active database connection
+
+        Example:
+            with service.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM dual")
+        """
+        # Ensure Oracle Client is initialized (lazy, thread-safe)
+        self._ensure_client_initialized(self.instant_client_path)
+
+        params = self._get_connection_params()
         conn = oracledb.connect(
             user=params["user"],
             password=params["password"],
@@ -114,7 +203,7 @@ class OracleService:
             Does not raise exceptions - returns graceful failure.
         """
         try:
-            with self._get_connection() as conn:
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
 
                 # Execute SELECT 1 FROM DUAL to verify connection
@@ -157,7 +246,7 @@ class OracleService:
         results: dict[str, TableAccessResult] = {}
 
         try:
-            with self._get_connection() as conn:
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
 
                 for table_name in table_names:
@@ -211,7 +300,7 @@ class OracleService:
             Dict with columns, row_count, and sample_data or error details.
         """
         try:
-            with self._get_connection() as conn:
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
 
                 # Get column names
@@ -255,4 +344,55 @@ class OracleService:
                 "success": False,
                 "table_name": table_name,
                 "error": error_msg,
+            }
+
+    def execute_query(
+        self,
+        query: str,
+        params: dict[str, Any] | None = None,
+    ) -> list[tuple[Any, ...]]:
+        """
+        Execute a SELECT query and return results.
+
+        Args:
+            query: SQL SELECT query to execute
+            params: Optional query parameters (use :param_name syntax)
+
+        Returns:
+            List of tuples containing query results
+
+        Raises:
+            Exception: If query execution fails
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params or {})
+            return cursor.fetchall()
+
+    def execute_query_with_columns(
+        self,
+        query: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Execute a SELECT query and return results with column names.
+
+        Args:
+            query: SQL SELECT query to execute
+            params: Optional query parameters (use :param_name syntax)
+
+        Returns:
+            Dict with 'columns' (list of names) and 'rows' (list of tuples)
+
+        Raises:
+            Exception: If query execution fails
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params or {})
+            columns = [col[0] for col in cursor.description] if cursor.description else []
+            rows = cursor.fetchall()
+            return {
+                "columns": columns,
+                "rows": rows,
             }

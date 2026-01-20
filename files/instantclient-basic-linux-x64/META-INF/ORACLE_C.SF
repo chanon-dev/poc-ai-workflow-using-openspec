@@ -1,0 +1,117 @@
+Signature-Version: 1.0
+Created-By: 11.0.25 (Oracle Corporation)
+SHA-256-Digest-Manifest: T+S9uLlJoONpxIy0HpIX+PR9vSisurjwPsHMlIK2csw=
+SHA-256-Digest-Manifest-Main-Attributes: rXGLzFRoiTCUr2HhBcoohKqa0SdlZ6G
+ pz173+fKLH2E=
+
+Name: instantclient_19_29/ucp.jar
+SHA-256-Digest: uFWADKwIxDGbej3JZEi0GWwAzJ7gEb6Ic9U3JGRgnDM=
+
+Name: instantclient_19_29/BASIC_README
+SHA-256-Digest: ll6jw1Mc3dbHtaAEj84XuDi1iKzvtGzlBfJLLPBCMSg=
+
+Name: instantclient_19_29/uidrvci
+SHA-256-Digest: zL2NPxcjRiC7wR/9PkqtYFB/aSOl6zPq20njvxlTWL4=
+
+Name: instantclient_19_29/libccme_ecc.so
+SHA-256-Digest: WmajnZEREDjGYlcYNXMV6Wg72UYBj2nwflLCcbnUNQA=
+
+Name: instantclient_19_29/libccme_base.so
+SHA-256-Digest: dzeCjqpuZEzdXCTrbqbciVSdBcq3rhp3isj5U4vY/Ag=
+
+Name: instantclient_19_29/libnnz19.so
+SHA-256-Digest: IIkiFwi+ktOOu+KEHDCem1/ssOnnRyy6iGn+923ET5Y=
+
+Name: instantclient_19_29/libccme_asym.so
+SHA-256-Digest: H/ThhOtRqisSH4MxJxskAJ0gea529torG/RZhQZhkvk=
+
+Name: instantclient_19_29/libociei.so
+SHA-256-Digest: J3P7T0jiYOXNqcQwkGvWVChM+RHOfOJzPPWfxo9jpVU=
+
+Name: instantclient_19_29/libocci_gcc53.so
+SHA-256-Digest: oT5Rha+eXTLARr+7LTTed+LJ01wkIPgjfcUJRswcSFc=
+
+Name: instantclient_19_29/libccme_base_non_fips.so
+SHA-256-Digest: s6d32bPwp7eX3yEujfN1zCR4uY3qhSZrLR5wRiQ9xnw=
+
+Name: instantclient_19_29/libclntsh.so.18.1
+SHA-256-Digest: IbmYCnNEDJDneNcK3KAJlmGuNHhT1zYCOEap4mNCOi0=
+
+Name: instantclient_19_29/BASIC_LICENSE
+SHA-256-Digest: qnEhDORfA8R9JHfSXwh7Pwsq5v5FeRVDqC4EgrgYc3o=
+
+Name: instantclient_19_29/network/admin/README
+SHA-256-Digest: YqHWGkQqkwYnyAdafQbDoJ0aFnXFpHG1DrzX8Tg6KJs=
+
+Name: instantclient_19_29/libccme_ecc_non_fips.so
+SHA-256-Digest: rDJc8EyMjj7s4ZtH0FgMm13Lu1ig94qFsXkUli9IrXk=
+
+Name: instantclient_19_29/libclntsh.so.19.1
+SHA-256-Digest: n76MB11fsdcts/SuI63M6WRMXGzubB0t1nTKdxDlb2E=
+
+Name: instantclient_19_29/liboramysql19.so
+SHA-256-Digest: gQqh/ZEi9G1Bhff+f3dcKVi+dmUCJArzMieeOXctlmk=
+
+Name: instantclient_19_29/ojdbc8.jar
+SHA-256-Digest: PHsxPV6sllLhRBgDurmwT/ws3a+7tVes2uqcMtWeg2c=
+
+Name: instantclient_19_29/adrci
+SHA-256-Digest: EipcEnrN1Hx1JB6jom8fWidQ3Rwz29b/JdpzJMJmdjY=
+
+Name: instantclient_19_29/xstreams.jar
+SHA-256-Digest: uqkH2QIMycn71W59t41VaC2TYQ+bVR/J1tKoc6EVdos=
+
+Name: instantclient_19_29/libocci.so.19.1
+SHA-256-Digest: k1vc49Da+pjiElz4pfUwzeF0RZGHOdu8z1UzL0126eg=
+
+Name: instantclient_19_29/libocci.so
+SHA-256-Digest: 9UtC/NQiW9ERRjN3uzjXwys5eHvOLRMibsvVPmQU5x4=
+
+Name: instantclient_19_29/libocci.so.18.1
+SHA-256-Digest: 4la5x+2CrQdBH3y81nkMAr9m5TjWczLdo8krITyx6ag=
+
+Name: instantclient_19_29/libocijdbc19.so
+SHA-256-Digest: RaNTX/97aMnBTWdXr6gRCtdt5yFISUw/0O//wEJAE1U=
+
+Name: instantclient_19_29/libclntsh.so
+SHA-256-Digest: 33Nu6UVS6neeAdqEBnMQp+299A6GiFnLj1xYFbPUV8U=
+
+Name: instantclient_19_29/libclntsh.so.10.1
+SHA-256-Digest: ZdWXgciDdvo1nPw0UanOWa8AEHXspWU/nilxC97U01A=
+
+Name: instantclient_19_29/libocci.so.12.1
+SHA-256-Digest: G96zmQntJ4k0u9w1n3PtiUgC6fQXspIypmkEbowK5ac=
+
+Name: instantclient_19_29/libipc1.so
+SHA-256-Digest: GqJkZh1cbYrZQzVRjs61dY5Kq0K4VFOStJ4e9B/H6GM=
+
+Name: instantclient_19_29/libmql1.so
+SHA-256-Digest: wZvD53SGLfWM4V0LZ4Ja9OWZIefJAL8+WBlj2FijvhI=
+
+Name: instantclient_19_29/libocci.so.11.1
+SHA-256-Digest: RIgqd5fi7VJ2zAY4MDCYvR7IMG5akD8UQP8hI07X0d4=
+
+Name: instantclient_19_29/libtfojdbc1.so
+SHA-256-Digest: vJ5SnlZoqkwCTaOxfevo23pra9mwn1hIKB7CIrJ3PNM=
+
+Name: instantclient_19_29/genezi
+SHA-256-Digest: Kwv52RpHOmujDYjENO4Co3Gu+ij59EedqliskUmQlyE=
+
+Name: instantclient_19_29/libcryptocme.so
+SHA-256-Digest: ZAhLD6okMkc++zG/c1fdaR2syPKhP+sroAKO5LCF3gg=
+
+Name: instantclient_19_29/libocci.so.10.1
+SHA-256-Digest: 81QOZXQsLxxSvHllgfj+jeP1WR5AolNQLytECIPD29M=
+
+Name: instantclient_19_29/libocci_gcc53.so.19.1
+SHA-256-Digest: 2zGbVNEqQ2yd0I00/FUT4bI33g2Nmf5eFbGpLtD8Vio=
+
+Name: instantclient_19_29/libclntsh.so.12.1
+SHA-256-Digest: GYtOdHYtv7jdvy/Hir9/fLBUGlbtDccK/L//ymiuDNU=
+
+Name: instantclient_19_29/libclntshcore.so.19.1
+SHA-256-Digest: Bd/kKTY1CDN//uC3hNcp4IUL0R6t6yz9pJrv1EIskmw=
+
+Name: instantclient_19_29/libclntsh.so.11.1
+SHA-256-Digest: Xk915Dwen5jD9jOhH0UPyVbJnDnuRalJ38PDecOdkhI=
+

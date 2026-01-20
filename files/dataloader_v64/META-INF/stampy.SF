@@ -1,0 +1,18 @@
+Signature-Version: 1.0
+SHA-256-Digest-Manifest: fek5hPvBMGgGyboJrb7Kmoq5ISMf2Yako6TiLyl/+Kg=
+
+Name: dataloader-64.1.0.jar
+SHA-256-Digest: RYXaTAc4ZCoBsjfZxiycTlDUHaobphnwIQk/rzVMZFE=
+
+Name: install.bat
+SHA-256-Digest: wtcgGUMExz5NFKlBc2fUmvhdXSp4rDd4YNOOa6KiXSw=
+
+Name: install.command
+SHA-256-Digest: cyX714Q1eWs4lQPaDC65pt8N04OBPR6D8q68t/z62cs=
+
+Name: util/util.bat
+SHA-256-Digest: NJrq+J1gj7+63KPsXBepA4a/C/eVgl6RJsAzRXD7EbQ=
+
+Name: util/util.sh
+SHA-256-Digest: BBYvDj6WWtGayxjMD9jSWRi7YCm79l1/BUFU6lVhHBA=
+
