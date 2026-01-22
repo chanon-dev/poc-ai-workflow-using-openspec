@@ -15,11 +15,10 @@ Source Tables (per Data Dictionary 12_Product & Price):
 
 Target: Salesforce Product2 object
 
-Fields (based on Sample_Product.csv):
-- TMS_Bar_Code__c, TMS_Unit__c, TMS_Start_Date__c, TMS_End_Date__c
-- TMS_Product_Category_Code__c, ProductCode, Name
-- TMS_Product_Name_TH__c, TMS_Product_Weight__c
-- TMS_Price_EXC_VAT__c, TMS_Price_INC_VAT__c
+Oracle Columns (mapped via SDL to SF fields):
+- BARCODE, UNIT_DESC, KPS_EFF_SDATE, KPS_EFF_EDATE
+- STD_CATE_CODE, PROD_SERV_CODE, PROD_SERV_NAME
+- KPS_PRICE_EXC_VAT, KPS_PRICE_INC_VAT
 """
 
 import csv
@@ -50,52 +49,26 @@ CONFIG_DIR = os.path.join(SALESFORCE_DIR, "dataloader_conf")
 OUTPUT_FILE = os.path.join(DATA_DIR, "Product2.csv")
 
 # SQL Query following Data Dictionary 12_Product & Price
-# Based on Sample_Product.csv mapping
+# Uses Oracle column names directly (mapped via SDL)
 EXTRACT_QUERY = """
 SELECT
-    -- Bar Code - Text(100)
-    r.BARCODE                               AS TMS_Bar_Code__c,
-
-    -- Unit - Picklist (just description)
-    u.UNIT_DESC                             AS TMS_Unit__c,
-
-    -- Start Date - Date/Time
-    a.KPS_EFF_SDATE                         AS TMS_Start_Date__c,
-
-    -- End Date - Date/Time
-    a.KPS_EFF_EDATE                         AS TMS_End_Date__c,
-
-    -- Product Category Code - Text(100)
-    r.STD_CATE_CODE                         AS TMS_Product_Category_Code__c,
-
-    -- Product Code - Text(255)
-    r.PROD_SERV_CODE                        AS ProductCode,
-
-    -- Product Name EN - Text(255)
-    r.PROD_SERV_NAME                        AS Name,
-
-    -- Product Name TH - Text(255) (New field - no Oracle source)
-    NULL                                    AS TMS_Product_Name_TH__c,
-
-    -- Product Weight - Number(16,2) (New field - no Oracle source)
-    NULL                                    AS TMS_Product_Weight__c,
-
-    -- Price Exclude VAT - Currency
-    a.KPS_PRICE_EXC_VAT                     AS TMS_Price_EXC_VAT__c,
-
-    -- Price Include VAT - Currency
-    a.KPS_PRICE_INC_VAT                     AS TMS_Price_INC_VAT__c
-
+    r.BARCODE,
+    u.UNIT_DESC,
+    a.KPS_EFF_SDATE,
+    a.KPS_EFF_EDATE,
+    r.STD_CATE_CODE,
+    r.PROD_SERV_CODE,
+    r.PROD_SERV_NAME,
+    a.KPS_PRICE_EXC_VAT,
+    a.KPS_PRICE_INC_VAT
 FROM KPS_T_REQPROD_MD r
--- JOIN with Approval Master (composite key)
 JOIN KPS_T_APPRV_M a
     ON  r.CON_CODE = a.CON_CODE
     AND r.SHOP_CODE = a.SHOP_CODE
     AND r.PROD_SERV_CODE = a.PROD_SERV_CODE
--- Lookup: Unit
 LEFT JOIN KPS_R_UNIT u
     ON a.UNIT_CODE = u.UNIT_CODE
-WHERE ROWNUM <= 1
+WHERE ROWNUM <= 100
 """
 
 
@@ -140,9 +113,9 @@ def extract_data(**context):
     # Oracle returns uppercase column names, convert to uppercase for matching
     df.columns = [col.upper() for col in df.columns]
 
-    # Apply transformations (use uppercase column names)
-    datetime_cols = ["TMS_START_DATE__C", "TMS_END_DATE__C", "CREATEDDATE"]
-    decimal_cols = ["TMS_PRICE_EXC_VAT__C", "TMS_PRICE_INC_VAT__C", "TMS_REFERENCE_PRICE__C"]
+    # Apply transformations (use Oracle column names - uppercase)
+    datetime_cols = ["KPS_EFF_SDATE", "KPS_EFF_EDATE"]
+    decimal_cols = ["KPS_PRICE_EXC_VAT", "KPS_PRICE_INC_VAT"]
 
     for col in datetime_cols:
         if col in df.columns:
