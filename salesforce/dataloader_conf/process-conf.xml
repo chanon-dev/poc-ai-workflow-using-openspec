@@ -5,18 +5,20 @@
         <property name="name" value="KPS_T_SALES_MD_Process"/>
         <property name="configOverrideMap">
             <map>
-                <entry key="sfdc.endpoint" value="https://login.salesforce.com"/>
-                <entry key="sfdc.username" value="chanon@kpc.com"/>
-                <entry key="sfdc.password" value="e8a68b7..."/>
-                <entry key="process.encryptionKeyFile" value="/opt/dataloader/certs/key.txt"/>
+                <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
+                <entry key="sfdc.username" value=""/>
+                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.timeoutSecs" value="600"/>
+                <entry key="sfdc.loadBatchSize" value="200"/>
+                <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_Sales__c"/>
                 <entry key="process.operation" value="upsert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
-                <entry key="process.mappingFile" value="/opt/dataloader/config/mappings/KPS_T_SALES_MD.sdl"/>
-                <entry key="dataAccess.name" value="/opt/dataloader/data/KPS_T_SALES_MD.csv"/>
+                <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_T_SALES_MD.sdl"/>
+                <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_T_SALES_MD.csv"/>
                 <entry key="dataAccess.type" value="csvRead"/>
-                <entry key="process.outputSuccess" value="/opt/dataloader/logs/KPS_T_SALES_MD_success.csv"/>
-                <entry key="process.outputError" value="/opt/dataloader/logs/KPS_T_SALES_MD_error.csv"/>
+                <entry key="process.outputSuccess" value="/opt/airflow/salesforce/logs/KPS_T_SALES_MD_success.csv"/>
+                <entry key="process.outputError" value="/opt/airflow/salesforce/logs/KPS_T_SALES_MD_error.csv"/>
                 <entry key="sfdc.useBulkApi" value="true"/>
                 <entry key="sfdc.bulkApiSerialMode" value="false"/>
                 <entry key="sfdc.loadBatchSize" value="10000"/>
@@ -32,18 +34,20 @@
         <property name="name" value="KPS_T_SALESPAY_MD_Process"/>
         <property name="configOverrideMap">
             <map>
-                <entry key="sfdc.endpoint" value="https://login.salesforce.com"/>
-                <entry key="sfdc.username" value="chanon@kpc.com"/>
-                <entry key="sfdc.password" value="e8a68b7..."/>
-                <entry key="process.encryptionKeyFile" value="/opt/dataloader/certs/key.txt"/>
+                <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
+                <entry key="sfdc.username" value=""/>
+                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.timeoutSecs" value="600"/>
+                <entry key="sfdc.loadBatchSize" value="200"/>
+                <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_SalesPay__c"/>
                 <entry key="process.operation" value="upsert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
-                <entry key="process.mappingFile" value="/opt/dataloader/config/mappings/KPS_T_SALESPAY_MD.sdl"/>
-                <entry key="dataAccess.name" value="/opt/dataloader/data/KPS_T_SALESPAY_MD.csv"/>
+                <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_T_SALESPAY_MD.sdl"/>
+                <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_T_SALESPAY_MD.csv"/>
                 <entry key="dataAccess.type" value="csvRead"/>
-                <entry key="process.outputSuccess" value="/opt/dataloader/logs/KPS_T_SALESPAY_MD_success.csv"/>
-                <entry key="process.outputError" value="/opt/dataloader/logs/KPS_T_SALESPAY_MD_error.csv"/>
+                <entry key="process.outputSuccess" value="/opt/airflow/salesforce/logs/KPS_T_SALESPAY_MD_success.csv"/>
+                <entry key="process.outputError" value="/opt/airflow/salesforce/logs/KPS_T_SALESPAY_MD_error.csv"/>
                 <entry key="sfdc.useBulkApi" value="true"/>
                 <entry key="sfdc.bulkApiSerialMode" value="false"/>
                 <entry key="sfdc.loadBatchSize" value="10000"/>
@@ -59,18 +63,20 @@
         <property name="name" value="KPS_T_SALES_M_Process"/>
         <property name="configOverrideMap">
             <map>
-                <entry key="sfdc.endpoint" value="https://login.salesforce.com"/>
-                <entry key="sfdc.username" value="chanon@kpc.com"/>
-                <entry key="sfdc.password" value="e8a68b7..."/>
-                <entry key="process.encryptionKeyFile" value="/opt/dataloader/certs/key.txt"/>
+                <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
+                <entry key="sfdc.username" value=""/>
+                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.timeoutSecs" value="600"/>
+                <entry key="sfdc.loadBatchSize" value="200"/>
+                <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_SalesM__c"/>
                 <entry key="process.operation" value="upsert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
-                <entry key="process.mappingFile" value="/opt/dataloader/config/mappings/KPS_T_SALES_M.sdl"/>
-                <entry key="dataAccess.name" value="/opt/dataloader/data/KPS_T_SALES_M.csv"/>
+                <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_T_SALES_M.sdl"/>
+                <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_T_SALES_M.csv"/>
                 <entry key="dataAccess.type" value="csvRead"/>
-                <entry key="process.outputSuccess" value="/opt/dataloader/logs/KPS_T_SALES_M_success.csv"/>
-                <entry key="process.outputError" value="/opt/dataloader/logs/KPS_T_SALES_M_error.csv"/>
+                <entry key="process.outputSuccess" value="/opt/airflow/salesforce/logs/KPS_T_SALES_M_success.csv"/>
+                <entry key="process.outputError" value="/opt/airflow/salesforce/logs/KPS_T_SALES_M_error.csv"/>
                 <entry key="sfdc.useBulkApi" value="true"/>
                 <entry key="sfdc.bulkApiSerialMode" value="false"/>
                 <entry key="sfdc.loadBatchSize" value="10000"/>
@@ -86,18 +92,20 @@
         <property name="name" value="KPS_R_EMAIL_TENANT_Process"/>
         <property name="configOverrideMap">
             <map>
-                <entry key="sfdc.endpoint" value="https://login.salesforce.com"/>
-                <entry key="sfdc.username" value="chanon@kpc.com"/>
-                <entry key="sfdc.password" value="e8a68b7..."/>
-                <entry key="process.encryptionKeyFile" value="/opt/dataloader/certs/key.txt"/>
+                <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
+                <entry key="sfdc.username" value=""/>
+                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.timeoutSecs" value="600"/>
+                <entry key="sfdc.loadBatchSize" value="200"/>
+                <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_EmailTenant__c"/>
                 <entry key="process.operation" value="upsert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
-                <entry key="process.mappingFile" value="/opt/dataloader/config/mappings/KPS_R_EMAIL_TENANT.sdl"/>
-                <entry key="dataAccess.name" value="/opt/dataloader/data/KPS_R_EMAIL_TENANT.csv"/>
+                <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_R_EMAIL_TENANT.sdl"/>
+                <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_R_EMAIL_TENANT.csv"/>
                 <entry key="dataAccess.type" value="csvRead"/>
-                <entry key="process.outputSuccess" value="/opt/dataloader/logs/KPS_R_EMAIL_TENANT_success.csv"/>
-                <entry key="process.outputError" value="/opt/dataloader/logs/KPS_R_EMAIL_TENANT_error.csv"/>
+                <entry key="process.outputSuccess" value="/opt/airflow/salesforce/logs/KPS_R_EMAIL_TENANT_success.csv"/>
+                <entry key="process.outputError" value="/opt/airflow/salesforce/logs/KPS_R_EMAIL_TENANT_error.csv"/>
                 <entry key="sfdc.useBulkApi" value="false"/>
                 <entry key="sfdc.loadBatchSize" value="200"/>
                 <entry key="dataAccess.writeUTF8" value="true"/>
@@ -112,18 +120,20 @@
         <property name="name" value="KPS_R_EMAIL_SUPPLIER_Process"/>
         <property name="configOverrideMap">
             <map>
-                <entry key="sfdc.endpoint" value="https://login.salesforce.com"/>
-                <entry key="sfdc.username" value="chanon@kpc.com"/>
-                <entry key="sfdc.password" value="e8a68b7..."/>
-                <entry key="process.encryptionKeyFile" value="/opt/dataloader/certs/key.txt"/>
+                <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
+                <entry key="sfdc.username" value=""/>
+                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.timeoutSecs" value="600"/>
+                <entry key="sfdc.loadBatchSize" value="200"/>
+                <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_EmailSupplier__c"/>
                 <entry key="process.operation" value="upsert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
-                <entry key="process.mappingFile" value="/opt/dataloader/config/mappings/KPS_R_EMAIL_SUPPLIER.sdl"/>
-                <entry key="dataAccess.name" value="/opt/dataloader/data/KPS_R_EMAIL_SUPPLIER.csv"/>
+                <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_R_EMAIL_SUPPLIER.sdl"/>
+                <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_R_EMAIL_SUPPLIER.csv"/>
                 <entry key="dataAccess.type" value="csvRead"/>
-                <entry key="process.outputSuccess" value="/opt/dataloader/logs/KPS_R_EMAIL_SUPPLIER_success.csv"/>
-                <entry key="process.outputError" value="/opt/dataloader/logs/KPS_R_EMAIL_SUPPLIER_error.csv"/>
+                <entry key="process.outputSuccess" value="/opt/airflow/salesforce/logs/KPS_R_EMAIL_SUPPLIER_success.csv"/>
+                <entry key="process.outputError" value="/opt/airflow/salesforce/logs/KPS_R_EMAIL_SUPPLIER_error.csv"/>
                 <entry key="sfdc.useBulkApi" value="false"/>
                 <entry key="sfdc.loadBatchSize" value="200"/>
                 <entry key="dataAccess.writeUTF8" value="true"/>
@@ -138,18 +148,20 @@
         <property name="name" value="KPS_R_POS_SUPPLIER_Process"/>
         <property name="configOverrideMap">
             <map>
-                <entry key="sfdc.endpoint" value="https://login.salesforce.com"/>
-                <entry key="sfdc.username" value="chanon@kpc.com"/>
-                <entry key="sfdc.password" value="e8a68b7..."/>
-                <entry key="process.encryptionKeyFile" value="/opt/dataloader/certs/key.txt"/>
+                <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
+                <entry key="sfdc.username" value=""/>
+                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.timeoutSecs" value="600"/>
+                <entry key="sfdc.loadBatchSize" value="200"/>
+                <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_PosSupplier__c"/>
                 <entry key="process.operation" value="upsert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
-                <entry key="process.mappingFile" value="/opt/dataloader/config/mappings/KPS_R_POS_SUPPLIER.sdl"/>
-                <entry key="dataAccess.name" value="/opt/dataloader/data/KPS_R_POS_SUPPLIER.csv"/>
+                <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_R_POS_SUPPLIER.sdl"/>
+                <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_R_POS_SUPPLIER.csv"/>
                 <entry key="dataAccess.type" value="csvRead"/>
-                <entry key="process.outputSuccess" value="/opt/dataloader/logs/KPS_R_POS_SUPPLIER_success.csv"/>
-                <entry key="process.outputError" value="/opt/dataloader/logs/KPS_R_POS_SUPPLIER_error.csv"/>
+                <entry key="process.outputSuccess" value="/opt/airflow/salesforce/logs/KPS_R_POS_SUPPLIER_success.csv"/>
+                <entry key="process.outputError" value="/opt/airflow/salesforce/logs/KPS_R_POS_SUPPLIER_error.csv"/>
                 <entry key="sfdc.useBulkApi" value="false"/>
                 <entry key="sfdc.loadBatchSize" value="200"/>
                 <entry key="dataAccess.writeUTF8" value="true"/>

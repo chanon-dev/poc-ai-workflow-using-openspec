@@ -42,7 +42,7 @@ RUN echo '#!/bin/bash' > /opt/dataloader/process.sh && \
     echo '    echo "Usage: $0 <config_dir> <process_name>"' >> /opt/dataloader/process.sh && \
     echo '    exit 1' >> /opt/dataloader/process.sh && \
     echo 'fi' >> /opt/dataloader/process.sh && \
-    echo 'java -cp /opt/dataloader/dataloader-64.1.0.jar -Dsalesforce.config.dir="$1" com.salesforce.dataloader.process.ProcessRunner process.name="$2"' >> /opt/dataloader/process.sh && \
+    echo 'java --enable-native-access=ALL-UNNAMED -cp /opt/dataloader/dataloader-64.1.0.jar com.salesforce.dataloader.process.DataLoaderRunner run.mode=batch salesforce.config.dir="$1" process.name="$2"' >> /opt/dataloader/process.sh && \
     chmod +x /opt/dataloader/process.sh
 
 USER airflow

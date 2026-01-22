@@ -21,11 +21,30 @@ MAPPING_DIR = OUTPUT_DIR / "mappings"
 LOG_DIR = PROJECT_ROOT / "salesforce" / "logs"
 DATA_DIR = PROJECT_ROOT / "salesforce" / "data"
 
-# Default Credentials (Should be encrypted in production)
-SF_ENDPOINT = "https://login.salesforce.com"
-SF_USERNAME = "chanon@kpc.com" # Placeholder
-SF_PASSWORD_ENCRYPTED = "e8a68b7..." # Placeholder
-ENC_KEY_FILE = "/opt/dataloader/certs/key.txt"
+# Salesforce Credentials from Airflow Variables (more secure)
+# Stored as a single JSON variable for grouping
+try:
+    from airflow.models import Variable
+    import json
+    sf_config = json.loads(Variable.get("salesforce_config", default_var="{}"))
+    SF_ENDPOINT = sf_config.get("endpoint", "https://test.salesforce.com")
+    SF_USERNAME = sf_config.get("username", "")
+    SF_PASSWORD = sf_config.get("encrypted_password", "")  # Use encrypted password
+    print(f"DEBUG: Loaded SF_PASSWORD from 'encrypted_password': {SF_PASSWORD[:5]}...")
+    print(f"DEBUG: Full SF_CONFIG keys: {list(sf_config.keys())}")
+    
+    if not SF_PASSWORD:
+         SF_PASSWORD = sf_config.get("password", "")
+         print(f"DEBUG: Fallback to 'password': {SF_PASSWORD}")
+except Exception as e:
+    print(f"⚠️ Failed to load Airflow Variable: {e}")
+    # Fallback for non-Airflow context (e.g., testing)
+    SF_ENDPOINT = os.getenv("SF_ENDPOINT", "https://test.salesforce.com")
+    SF_USERNAME = os.getenv("SF_USERNAME", "")
+    SF_PASSWORD = os.getenv("SF_PASSWORD", "")
+
+# Encryption key path (not needed for plain text password)
+ENC_KEY_FILE = f"{os.getenv('AIRFLOW_HOME', '/opt/airflow')}/salesforce/certs/key.txt"
 
 def ensure_dirs():
     os.makedirs(MAPPING_DIR, exist_ok=True)
@@ -62,7 +81,10 @@ def create_process_bean(table_config: TableConfig, field_mapping: FieldMapping, 
     # Connection Settings
     add_entry("sfdc.endpoint", SF_ENDPOINT)
     add_entry("sfdc.username", SF_USERNAME)
-    add_entry("sfdc.password", SF_PASSWORD_ENCRYPTED)
+    add_entry("sfdc.password", SF_PASSWORD)  # Plain text password from env
+    add_entry("sfdc.timeoutSecs", "600")
+    add_entry("sfdc.loadBatchSize", "200")
+    # Encryption needed for encrypted password
     add_entry("process.encryptionKeyFile", ENC_KEY_FILE)
     
     # Table Settings
@@ -70,16 +92,19 @@ def create_process_bean(table_config: TableConfig, field_mapping: FieldMapping, 
     add_entry("process.operation", "upsert") # Default to Upsert
     add_entry("sfdc.externalIdField", table_config.external_id_field)
     
-    # Paths (Using absolute paths or placeholders)
-    # Note: In real setup, these paths should match the container/server paths.
-    # Here we use relative paths for the generating machine context or placeholders.
-    # Let's use the local output paths for now, or standardized /opt/ paths if strictly following the doc.
-    # Following the strategy doc which suggests /opt/dataloader/
+    # Paths
+    # Use AIRFLOW_HOME environment variable to determine absolute paths
+    airflow_home = os.getenv("AIRFLOW_HOME", "/opt/airflow")
+    base_path = f"{airflow_home}/salesforce"
     
-    base_path = "/opt/dataloader"
-    add_entry("process.mappingFile", f"{base_path}/config/mappings/{table_config.table_name}.sdl")
+    # process.mappingFile points to the .sdl file
+    add_entry("process.mappingFile", f"{base_path}/dataloader_conf/mappings/{table_config.table_name}.sdl")
+    
+    # dataAccess.name points to the input CSV
     add_entry("dataAccess.name", f"{base_path}/data/{table_config.table_name}.csv")
     add_entry("dataAccess.type", "csvRead")
+    
+    # Output logs
     add_entry("process.outputSuccess", f"{base_path}/logs/{table_config.table_name}_success.csv")
     add_entry("process.outputError", f"{base_path}/logs/{table_config.table_name}_error.csv")
     
@@ -98,16 +123,30 @@ def create_process_bean(table_config: TableConfig, field_mapping: FieldMapping, 
     add_entry("sfdc.timezone", "Asia/Bangkok")
     add_entry("sfdc.debugMessages", "false")
 
+import argparse
+
 def generate_configs():
+    parser = argparse.ArgumentParser(description="Generate Data Loader Configs")
+    parser.add_argument("--table", help="Specific table to generate config for", default=None)
+    args = parser.parse_args()
+
     ensure_dirs()
     
     # Init XML Root
     doctype = '<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">'
     root = ET.Element("beans")
     
-    print(f"Found {len(TABLES)} tables configuration.")
+    # Filter tables if argument provided
+    target_tables = TABLES
+    if args.table:
+        target_tables = [t for t in TABLES if t.table_name == args.table]
+        if not target_tables:
+            print(f"Error: Table {args.table} not found in configuration.")
+            sys.exit(1)
+            
+    print(f"Found {len(target_tables)} tables configuration.")
     
-    for table in TABLES:
+    for table in target_tables:
         print(f"Processing {table.table_name}...")
         
         # 1. Generate SDL
