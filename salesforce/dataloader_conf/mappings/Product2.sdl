@@ -1,0 +1,36 @@
+# Mapping for Product2
+# Based on Sample_Product.csv and Data Dictionary 12_Product & Price
+# Format: CSV_COLUMN=Salesforce_Field
+
+# Bar Code - Text(100)
+TMS_BAR_CODE__C=TMS_Bar_Code__c
+
+# Unit - Picklist
+TMS_UNIT__C=TMS_Unit__c
+
+# Start Date - Date/Time
+TMS_START_DATE__C=TMS_Start_Date__c
+
+# End Date - Date/Time
+TMS_END_DATE__C=TMS_End_Date__c
+
+# Product Category Code - Text(100)
+TMS_PRODUCT_CATEGORY_CODE__C=TMS_Product_Category_Code__c
+
+# Product Code - Text(255) - Standard Field
+PRODUCTCODE=ProductCode
+
+# Product Name EN - Text(255) - Standard Field
+NAME=Name
+
+# Product Name TH - Text(255)
+TMS_PRODUCT_NAME_TH__C=TMS_Product_Name_TH__c
+
+# Product Weight - Number(16,2)
+TMS_PRODUCT_WEIGHT__C=TMS_Product_Weight__c
+
+# Price Exclude VAT - Currency
+TMS_PRICE_EXC_VAT__C=TMS_Price_EXC_VAT__c
+
+# Price Include VAT - Currency
+TMS_PRICE_INC_VAT__C=TMS_Price_INC_VAT__c

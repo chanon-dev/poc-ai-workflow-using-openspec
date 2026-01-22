@@ -124,6 +124,40 @@ FIELD_MAPPINGS: dict[str, FieldMapping] = {
             "SUPPLIER_NAME": "Supplier_Name__c",
         },
     ),
+    # Product & Price migration (Multi-table JOIN → Product2)
+    # Source: KPS_T_REQPROD_MD + KPS_T_APPRV_M + Reference tables
+    "Product2": FieldMapping(
+        sf_object="Product2",
+        external_id="ProductCode",
+        mappings={
+            # Lookups (from APPRV_M + Reference tables)
+            "TMS_Concession__c": "TMS_Concession__c",
+            "TMS_Company_Name__c": "TMS_Company_Name__c",
+            "TMS_Shop_Name__c": "TMS_Shop_Name__c",
+            "TMS_Unit__c": "TMS_Unit__c",
+            # Approval Info (from APPRV_M)
+            "TMS_Start_Date__c": "TMS_Start_Date__c",
+            "TMS_End_Date__c": "TMS_End_Date__c",
+            "TMS_Document_No_Ticket_No__c": "TMS_Document_No_Ticket_No__c",
+            # Product Info (from REQPROD_MD)
+            "TMS_Bar_Code__c": "TMS_Bar_Code__c",
+            "TMS_Product_Category_Code__c": "TMS_Product_Category_Code__c",
+            "ProductCode": "ProductCode",
+            "Name": "Name",
+            "TMS_Product_Type__c": "TMS_Product_Type__c",
+            "TMS_Price_EXC_VAT__c": "TMS_Price_EXC_VAT__c",
+            "TMS_Price_INC_VAT__c": "TMS_Price_INC_VAT__c",
+            "TMS_Ref_Source__c": "TMS_Ref_Source__c",
+            "TMS_Ref_Price__c": "TMS_Ref_Price__c",
+        },
+        transformations={
+            "TMS_Start_Date__c": TRANSFORM_SF_DATETIME,
+            "TMS_End_Date__c": TRANSFORM_SF_DATETIME,
+            "TMS_Price_EXC_VAT__c": TRANSFORM_DECIMAL_2,
+            "TMS_Price_INC_VAT__c": TRANSFORM_DECIMAL_2,
+            "TMS_Ref_Price__c": TRANSFORM_DECIMAL_2,
+        },
+    ),
 }
 
 

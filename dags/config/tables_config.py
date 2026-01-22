@@ -147,6 +147,14 @@ TABLES = [
         priority="low",
         records_per_year=4,
     ),
+    # Product & Price migration (Multi-table JOIN → Product2)
+    TableConfig(
+        table_name="Product2",
+        sf_object="Product2",
+        external_id_field="ProductCode",
+        priority="medium",
+        records_per_year=100_000,
+    ),
 ]
 
 

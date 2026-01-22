@@ -6,13 +6,13 @@
         <property name="configOverrideMap">
             <map>
                 <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
-                <entry key="sfdc.username" value=""/>
-                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.username" value="chanon.seeyam@kingpower.com.tmsdev"/>
+                <entry key="sfdc.password" value="45fb2f6c02f2a658d28e01b1e24f55cf29298705c9412fd52bba91e02b95e56666b22cec09e8894b07365d02d92ed0f759f8785d48d2eeaad2f4b80b7f04f272"/>
                 <entry key="sfdc.timeoutSecs" value="600"/>
                 <entry key="sfdc.loadBatchSize" value="200"/>
                 <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_Sales__c"/>
-                <entry key="process.operation" value="upsert"/>
+                <entry key="process.operation" value="insert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
                 <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_T_SALES_MD.sdl"/>
                 <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_T_SALES_MD.csv"/>
@@ -35,13 +35,13 @@
         <property name="configOverrideMap">
             <map>
                 <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
-                <entry key="sfdc.username" value=""/>
-                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.username" value="chanon.seeyam@kingpower.com.tmsdev"/>
+                <entry key="sfdc.password" value="45fb2f6c02f2a658d28e01b1e24f55cf29298705c9412fd52bba91e02b95e56666b22cec09e8894b07365d02d92ed0f759f8785d48d2eeaad2f4b80b7f04f272"/>
                 <entry key="sfdc.timeoutSecs" value="600"/>
                 <entry key="sfdc.loadBatchSize" value="200"/>
                 <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_SalesPay__c"/>
-                <entry key="process.operation" value="upsert"/>
+                <entry key="process.operation" value="insert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
                 <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_T_SALESPAY_MD.sdl"/>
                 <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_T_SALESPAY_MD.csv"/>
@@ -64,13 +64,13 @@
         <property name="configOverrideMap">
             <map>
                 <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
-                <entry key="sfdc.username" value=""/>
-                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.username" value="chanon.seeyam@kingpower.com.tmsdev"/>
+                <entry key="sfdc.password" value="45fb2f6c02f2a658d28e01b1e24f55cf29298705c9412fd52bba91e02b95e56666b22cec09e8894b07365d02d92ed0f759f8785d48d2eeaad2f4b80b7f04f272"/>
                 <entry key="sfdc.timeoutSecs" value="600"/>
                 <entry key="sfdc.loadBatchSize" value="200"/>
                 <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_SalesM__c"/>
-                <entry key="process.operation" value="upsert"/>
+                <entry key="process.operation" value="insert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
                 <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_T_SALES_M.sdl"/>
                 <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_T_SALES_M.csv"/>
@@ -93,13 +93,13 @@
         <property name="configOverrideMap">
             <map>
                 <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
-                <entry key="sfdc.username" value=""/>
-                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.username" value="chanon.seeyam@kingpower.com.tmsdev"/>
+                <entry key="sfdc.password" value="45fb2f6c02f2a658d28e01b1e24f55cf29298705c9412fd52bba91e02b95e56666b22cec09e8894b07365d02d92ed0f759f8785d48d2eeaad2f4b80b7f04f272"/>
                 <entry key="sfdc.timeoutSecs" value="600"/>
                 <entry key="sfdc.loadBatchSize" value="200"/>
                 <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_EmailTenant__c"/>
-                <entry key="process.operation" value="upsert"/>
+                <entry key="process.operation" value="insert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
                 <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_R_EMAIL_TENANT.sdl"/>
                 <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_R_EMAIL_TENANT.csv"/>
@@ -121,13 +121,13 @@
         <property name="configOverrideMap">
             <map>
                 <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
-                <entry key="sfdc.username" value=""/>
-                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.username" value="chanon.seeyam@kingpower.com.tmsdev"/>
+                <entry key="sfdc.password" value="45fb2f6c02f2a658d28e01b1e24f55cf29298705c9412fd52bba91e02b95e56666b22cec09e8894b07365d02d92ed0f759f8785d48d2eeaad2f4b80b7f04f272"/>
                 <entry key="sfdc.timeoutSecs" value="600"/>
                 <entry key="sfdc.loadBatchSize" value="200"/>
                 <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_EmailSupplier__c"/>
-                <entry key="process.operation" value="upsert"/>
+                <entry key="process.operation" value="insert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
                 <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_R_EMAIL_SUPPLIER.sdl"/>
                 <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_R_EMAIL_SUPPLIER.csv"/>
@@ -149,13 +149,13 @@
         <property name="configOverrideMap">
             <map>
                 <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
-                <entry key="sfdc.username" value=""/>
-                <entry key="sfdc.password" value=""/>
+                <entry key="sfdc.username" value="chanon.seeyam@kingpower.com.tmsdev"/>
+                <entry key="sfdc.password" value="45fb2f6c02f2a658d28e01b1e24f55cf29298705c9412fd52bba91e02b95e56666b22cec09e8894b07365d02d92ed0f759f8785d48d2eeaad2f4b80b7f04f272"/>
                 <entry key="sfdc.timeoutSecs" value="600"/>
                 <entry key="sfdc.loadBatchSize" value="200"/>
                 <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
                 <entry key="sfdc.entity" value="KPS_PosSupplier__c"/>
-                <entry key="process.operation" value="upsert"/>
+                <entry key="process.operation" value="insert"/>
                 <entry key="sfdc.externalIdField" value="External_ID__c"/>
                 <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/KPS_R_POS_SUPPLIER.sdl"/>
                 <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/KPS_R_POS_SUPPLIER.csv"/>
@@ -164,6 +164,35 @@
                 <entry key="process.outputError" value="/opt/airflow/salesforce/logs/KPS_R_POS_SUPPLIER_error.csv"/>
                 <entry key="sfdc.useBulkApi" value="false"/>
                 <entry key="sfdc.loadBatchSize" value="200"/>
+                <entry key="dataAccess.writeUTF8" value="true"/>
+                <entry key="dataAccess.readUTF8" value="true"/>
+                <entry key="sfdc.timezone" value="Asia/Bangkok"/>
+                <entry key="sfdc.debugMessages" value="false"/>
+            </map>
+        </property>
+    </bean>
+    <bean class="com.salesforce.dataloader.process.ProcessRunner" scope="prototype" id="Product2_Process">
+        <description>Migration for Product2</description>
+        <property name="name" value="Product2_Process"/>
+        <property name="configOverrideMap">
+            <map>
+                <entry key="sfdc.endpoint" value="https://test.salesforce.com"/>
+                <entry key="sfdc.username" value="chanon.seeyam@kingpower.com.tmsdev"/>
+                <entry key="sfdc.password" value="45fb2f6c02f2a658d28e01b1e24f55cf29298705c9412fd52bba91e02b95e56666b22cec09e8894b07365d02d92ed0f759f8785d48d2eeaad2f4b80b7f04f272"/>
+                <entry key="sfdc.timeoutSecs" value="600"/>
+                <entry key="sfdc.loadBatchSize" value="200"/>
+                <entry key="process.encryptionKeyFile" value="/opt/airflow/salesforce/certs/key.txt"/>
+                <entry key="sfdc.entity" value="Product2"/>
+                <entry key="process.operation" value="insert"/>
+                <entry key="sfdc.externalIdField" value="ProductCode"/>
+                <entry key="process.mappingFile" value="/opt/airflow/salesforce/dataloader_conf/mappings/Product2.sdl"/>
+                <entry key="dataAccess.name" value="/opt/airflow/salesforce/data/Product2.csv"/>
+                <entry key="dataAccess.type" value="csvRead"/>
+                <entry key="process.outputSuccess" value="/opt/airflow/salesforce/logs/Product2_success.csv"/>
+                <entry key="process.outputError" value="/opt/airflow/salesforce/logs/Product2_error.csv"/>
+                <entry key="sfdc.useBulkApi" value="true"/>
+                <entry key="sfdc.bulkApiSerialMode" value="false"/>
+                <entry key="sfdc.loadBatchSize" value="10000"/>
                 <entry key="dataAccess.writeUTF8" value="true"/>
                 <entry key="dataAccess.readUTF8" value="true"/>
                 <entry key="sfdc.timezone" value="Asia/Bangkok"/>

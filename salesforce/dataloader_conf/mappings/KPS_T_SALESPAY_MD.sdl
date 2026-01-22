@@ -1,7 +1,0 @@
-# Mapping for KPS_T_SALESPAY_MD
-SALESPAY_ID=External_ID__c
-SALES_ID=Sales__c
-PAYMENT_METHOD=Payment_Method__c
-PAYMENT_AMOUNT=Payment_Amount__c
-CARD_NUMBER=Card_Number__c
-CREATED_DATE=Oracle_Created_Date__c

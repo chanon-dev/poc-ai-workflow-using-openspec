@@ -1,38 +1,61 @@
-# Spec: Airflow DAG for Sample ETL
+# Spec: Centralized Setup DAG + Product Migration
 
 ## ADDED Requirements
 
-### Requirement: Orchestrated Migration Flow
+### Requirement: Centralized Setup DAG
 
-The system MUST provide an Airflow DAG that manages the end-to-end migration process for a sample table, ensuring all steps from extraction to archiving are executed in order.
+The system SHALL provide a Setup DAG (`setup_salesforce_pipeline`) that generates all Data Loader configurations ahead of time, preventing race conditions when multiple Execution DAGs run in parallel.
 
-#### Scenario: Sample Migration Execution
+#### Scenario: Setup DAG generates master config
 
-Given the Airflow environment is running
-And the Oracle database is accessible
-And the Salesforce Data Loader is configured
-When the `migrate_sample_kps_t_sales_md` DAG is triggered
-Then it should extract data from `KPS_T_SALES_MD` table
-And transform it to a CSV file in `${AIRFLOW_HOME}/salesforce/data/`
-And generate the Data Loader configuration files
-And execute the Salesforce Data Loader `process.sh`
-And archive the result logs
+- **WHEN** the `setup_salesforce_pipeline` DAG is triggered
+- **THEN** it SHALL generate a master `process-conf.xml` containing beans for all tables
+- **AND** it SHALL generate `.sdl` mapping files for each table
+- **AND** it SHALL encrypt Salesforce credentials
 
-## ADDED Requirements (Error Handling)
+#### Scenario: Setup DAG runs after deploy
+
+- **WHEN** new code is deployed with updated field mappings
+- **THEN** the operator SHALL run `setup_salesforce_pipeline` once
+- **AND** all Execution DAGs SHALL use the new configurations
+
+### Requirement: Product Price Migration DAG
+
+The system SHALL provide an Execution DAG (`migrate_product_price`) that migrates Product & Price data from Oracle `KPS_T_REQPROD_MD` to Salesforce `Product2` object.
+
+#### Scenario: Extract product data
+
+- **WHEN** the extract task runs
+- **THEN** it SHALL query `KPS_T_REQPROD_MD` table
+- **AND** it SHALL format date fields as ISO 8601 datetime
+- **AND** it SHALL format decimal fields with 2 decimal places
+- **AND** it SHALL output CSV to `${AIRFLOW_HOME}/salesforce/data/KPS_T_REQPROD_MD.csv`
+
+#### Scenario: Load product data
+
+- **WHEN** the load task runs
+- **THEN** it SHALL execute Data Loader using the pre-generated master config
+- **AND** it SHALL NOT generate any new configuration files
+- **AND** it SHALL upsert records to Salesforce `Product2` using `ProductCode` as external ID
+
+### Requirement: Parallel Execution Safety
+
+The system SHALL allow multiple Execution DAGs to run in parallel without file conflicts.
+
+#### Scenario: Parallel migration without race condition
+
+- **WHEN** `migrate_product_price` and `migrate_sales_data` run simultaneously
+- **THEN** both DAGs SHALL read from the same master `process-conf.xml`
+- **AND** neither DAG SHALL write to the config file
+- **AND** both DAGs SHALL complete successfully
 
 ### Requirement: Failure Detection
 
-The system MUST detect failures at both the Airflow task level and the Data Loader application level (e.g., partial failures in CSV logs) and report them appropriately.
+The system SHALL detect failures at both the Airflow task level and the Data Loader application level.
 
-#### Scenario: Extraction Failure
+#### Scenario: Data Loader partial failure
 
-Given the Oracle connection is down
-When the extraction task runs
-Then the task should fail
-And an alert should be logged
-
-#### Scenario: Data Loader Failure
-
-Given the Data Loader process exits with specific error messages in `status-error.csv`
-Then the `audit_results` task should detect the errors
-And fail the DAG run
+- **WHEN** the Data Loader process completes with errors in `error.csv`
+- **THEN** the `audit_results` task SHALL count success and error records
+- **AND** it SHALL fail the DAG if error count > 0
+- **AND** it SHALL log the error file path for retry

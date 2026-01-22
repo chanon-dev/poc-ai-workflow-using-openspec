@@ -43,6 +43,12 @@ SAMPLE_SIZE = 20
 # Output folder
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "database")
 
+# =============================================
+# ระบุตารางที่ต้องการดึง (ถ้าว่างจะดึงทุกตาราง)
+# =============================================
+# ตัวอย่าง: TABLES_TO_EXTRACT = ["KPS_T_SALES_MD", "KPS_T_SALESPAY_MD"]
+TABLES_TO_EXTRACT = ["KPS_R_SHOP_BRAND"]
+
 
 def get_connection():
     """สร้าง connection ไปยัง Oracle Database"""
@@ -169,10 +175,16 @@ def main():
         print(f"❌ Connection failed: {e}")
         return
     
-    # Get all tables
+    # Get tables
     print("\n📋 Fetching table list...")
-    tables = get_all_tables(connection)
-    print(f"   Found {len(tables)} tables")
+    if TABLES_TO_EXTRACT:
+        # ใช้เฉพาะตารางที่ระบุ
+        tables = TABLES_TO_EXTRACT
+        print(f"   Using specified tables: {len(tables)} tables")
+    else:
+        # ดึงทุกตาราง
+        tables = get_all_tables(connection)
+        print(f"   Found {len(tables)} tables (all)")
     
     # Extract data from each table
     print(f"\n📥 Extracting {SAMPLE_SIZE} records from each table...")

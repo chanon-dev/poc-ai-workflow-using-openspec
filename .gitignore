@@ -49,3 +49,5 @@ standalone_admin_password.txt
 # Project specific
 tmp/
 temp/
+database/
+config/airflow_variables.json

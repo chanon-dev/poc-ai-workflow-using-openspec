@@ -21,27 +21,34 @@ MAPPING_DIR = OUTPUT_DIR / "mappings"
 LOG_DIR = PROJECT_ROOT / "salesforce" / "logs"
 DATA_DIR = PROJECT_ROOT / "salesforce" / "data"
 
-# Salesforce Credentials from Airflow Variables (more secure)
-# Stored as a single JSON variable for grouping
-try:
-    from airflow.models import Variable
-    import json
-    sf_config = json.loads(Variable.get("salesforce_config", default_var="{}"))
-    SF_ENDPOINT = sf_config.get("endpoint", "https://test.salesforce.com")
-    SF_USERNAME = sf_config.get("username", "")
-    SF_PASSWORD = sf_config.get("encrypted_password", "")  # Use encrypted password
-    print(f"DEBUG: Loaded SF_PASSWORD from 'encrypted_password': {SF_PASSWORD[:5]}...")
-    print(f"DEBUG: Full SF_CONFIG keys: {list(sf_config.keys())}")
-    
-    if not SF_PASSWORD:
-         SF_PASSWORD = sf_config.get("password", "")
-         print(f"DEBUG: Fallback to 'password': {SF_PASSWORD}")
-except Exception as e:
-    print(f"⚠️ Failed to load Airflow Variable: {e}")
-    # Fallback for non-Airflow context (e.g., testing)
-    SF_ENDPOINT = os.getenv("SF_ENDPOINT", "https://test.salesforce.com")
-    SF_USERNAME = os.getenv("SF_USERNAME", "")
-    SF_PASSWORD = os.getenv("SF_PASSWORD", "")
+# Salesforce Credentials - loaded at runtime via function
+# to ensure we get the latest values from Airflow Variables
+SF_ENDPOINT = ""
+SF_USERNAME = ""
+SF_PASSWORD = ""
+
+def load_sf_credentials():
+    """Load Salesforce credentials from Airflow Variables at runtime."""
+    global SF_ENDPOINT, SF_USERNAME, SF_PASSWORD
+    try:
+        from airflow.models import Variable
+        import json
+        sf_config = json.loads(Variable.get("salesforce_config", default_var="{}"))
+        SF_ENDPOINT = sf_config.get("endpoint", "https://test.salesforce.com")
+        SF_USERNAME = sf_config.get("username", "")
+        SF_PASSWORD = sf_config.get("encrypted_password", "")  # Use encrypted password
+        print(f"DEBUG: Loaded SF_PASSWORD from 'encrypted_password': {SF_PASSWORD[:20] if SF_PASSWORD else 'EMPTY'}...")
+        print(f"DEBUG: Full SF_CONFIG keys: {list(sf_config.keys())}")
+        
+        if not SF_PASSWORD:
+            SF_PASSWORD = sf_config.get("password", "")
+            print(f"DEBUG: Fallback to 'password' (plain text)")
+    except Exception as e:
+        print(f"⚠️ Failed to load Airflow Variable: {e}")
+        # Fallback for non-Airflow context (e.g., testing)
+        SF_ENDPOINT = os.getenv("SF_ENDPOINT", "https://test.salesforce.com")
+        SF_USERNAME = os.getenv("SF_USERNAME", "")
+        SF_PASSWORD = os.getenv("SF_PASSWORD", "")
 
 # Encryption key path (not needed for plain text password)
 ENC_KEY_FILE = f"{os.getenv('AIRFLOW_HOME', '/opt/airflow')}/salesforce/certs/key.txt"
@@ -89,7 +96,8 @@ def create_process_bean(table_config: TableConfig, field_mapping: FieldMapping, 
     
     # Table Settings
     add_entry("sfdc.entity", table_config.sf_object)
-    add_entry("process.operation", "upsert") # Default to Upsert
+    # add_entry("process.operation", "upsert") # Default to Upsert
+    add_entry("process.operation", "insert") # Default to Upsert
     add_entry("sfdc.externalIdField", table_config.external_id_field)
     
     # Paths
@@ -125,12 +133,17 @@ def create_process_bean(table_config: TableConfig, field_mapping: FieldMapping, 
 
 import argparse
 
-def generate_configs():
-    parser = argparse.ArgumentParser(description="Generate Data Loader Configs")
-    parser.add_argument("--table", help="Specific table to generate config for", default=None)
-    args = parser.parse_args()
-
+def generate_configs(table_name: str = None):
+    """Generate Data Loader configs for all tables or a specific table.
+    
+    Args:
+        table_name: Optional specific table name to generate config for.
+                   If None, generates for all tables.
+    """
     ensure_dirs()
+    
+    # Load credentials fresh from Airflow Variable
+    load_sf_credentials()
     
     # Init XML Root
     doctype = '<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">'
@@ -138,11 +151,11 @@ def generate_configs():
     
     # Filter tables if argument provided
     target_tables = TABLES
-    if args.table:
-        target_tables = [t for t in TABLES if t.table_name == args.table]
+    if table_name:
+        target_tables = [t for t in TABLES if t.table_name == table_name]
         if not target_tables:
-            print(f"Error: Table {args.table} not found in configuration.")
-            sys.exit(1)
+            print(f"Error: Table {table_name} not found in configuration.")
+            return False
             
     print(f"Found {len(target_tables)} tables configuration.")
     
@@ -179,4 +192,7 @@ def generate_configs():
     print(f"- {len(list(MAPPING_DIR.glob('*.sdl')))} mapping files (.sdl)")
 
 if __name__ == "__main__":
-    generate_configs()
+    parser = argparse.ArgumentParser(description="Generate Data Loader Configs")
+    parser.add_argument("--table", help="Specific table to generate config for", default=None)
+    args = parser.parse_args()
+    generate_configs(table_name=args.table)
