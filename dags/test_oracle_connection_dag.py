@@ -21,8 +21,8 @@ from config.tables_config import TABLES
 # Default connection ID
 ORACLE_CONN_ID = "oracle_kpc"
 
-# Tables to verify (get from config)
-TABLES_TO_VERIFY = [t.table_name for t in TABLES]
+# Tables to verify (Hardcoded for debugging Product2 access)
+TABLES_TO_VERIFY = ["KPS_T_REQPROD_MD"]
 
 
 with DAG(
