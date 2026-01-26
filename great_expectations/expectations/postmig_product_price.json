@@ -1,0 +1,18 @@
+{
+    "expectation_suite_name": "postmig_product_price",
+    "data_asset_type": null,
+    "expectations": [
+        {
+            "expectation_type": "expect_table_row_count_to_equal",
+            "kwargs": {
+                "value": {
+                    "$PARAMETER": "source_count"
+                }
+            },
+            "meta": {}
+        }
+    ],
+    "meta": {
+        "great_expectations_version": "0.18.8"
+    }
+}

@@ -1,0 +1,30 @@
+{
+    "expectation_suite_name": "source_product_price",
+    "data_asset_type": null,
+    "expectations": [
+        {
+            "expectation_type": "expect_column_values_to_not_be_null",
+            "kwargs": {
+                "column": "BARCODE"
+            },
+            "meta": {}
+        },
+        {
+            "expectation_type": "expect_column_values_to_not_be_null",
+            "kwargs": {
+                "column": "STD_CATE_CODE"
+            },
+            "meta": {}
+        },
+        {
+            "expectation_type": "expect_table_row_count_to_be_between",
+            "kwargs": {
+                "min_value": 1
+            },
+            "meta": {}
+        }
+    ],
+    "meta": {
+        "great_expectations_version": "0.18.8"
+    }
+}

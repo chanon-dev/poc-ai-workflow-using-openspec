@@ -1,0 +1,10 @@
+- [x] Initialize Great Expectations project structure `great_expectations init` <!-- id: 0 -->
+- [x] Configure `great_expectations.yml` with Oracle and Filesystem datasources <!-- id: 1 -->
+- [x] Create Expectation Suite: `source_product_price` (Oracle) <!-- id: 2 -->
+- [x] Create Expectation Suite: `extract_product_price` (CSV) <!-- id: 3 -->
+- [x] Create Expectation Suite: `postmig_product_price` (Reconciliation) <!-- id: 4 -->
+- [x] Update `migrate_product_price_dag.py` to import GX libraries <!-- id: 5 -->
+- [x] Add `validate_source` task to DAG <!-- id: 6 -->
+- [x] Add `validate_extract` task to DAG <!-- id: 7 -->
+- [x] Add `validate_postmig` logic to DAG (or separate task) <!-- id: 8 -->
+- [x] Test DAG execution with dry-run <!-- id: 9 -->

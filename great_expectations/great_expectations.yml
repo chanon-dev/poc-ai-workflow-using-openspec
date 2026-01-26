@@ -1,0 +1,95 @@
+config_version: 3.0
+
+datasources:
+  oracle_kpc:
+    class_name: Datasource
+    module_name: great_expectations.datasource
+    execution_engine:
+      class_name: SqlAlchemyExecutionEngine
+      module_name: great_expectations.execution_engine
+      connection_string: oracle+cx_oracle://kpc:kpc@localhost:1521/?service_name=KPCPROD
+    data_connectors:
+      default_inferred_data_connector:
+        name: default_inferred_data_connector
+        class_name: InferredAssetSqlDataConnector
+        module_name: great_expectations.datasource.data_connector
+        include_schema_name: true
+  staging_filesystem:
+    class_name: Datasource
+    module_name: great_expectations.datasource
+    execution_engine:
+      class_name: PandasExecutionEngine
+      module_name: great_expectations.execution_engine
+    data_connectors:
+      staging_connector:
+        name: staging_connector
+        class_name: InferredAssetFilesystemDataConnector
+        module_name: great_expectations.datasource.data_connector
+        base_directory: /opt/airflow/salesforce/data
+        default_regex:
+          pattern: (.*)\.csv
+          group_names:
+            - data_asset_name
+
+  runtime_datasource:
+    class_name: Datasource
+    module_name: great_expectations.datasource
+    execution_engine:
+      class_name: PandasExecutionEngine
+      module_name: great_expectations.execution_engine
+    data_connectors:
+      runtime_connector:
+        class_name: RuntimeDataConnector
+        module_name: great_expectations.datasource.data_connector
+        batch_identifiers:
+          - batch_id
+stores:
+  expectations_store:
+    class_name: ExpectationsStore
+    store_backend:
+      class_name: TupleFilesystemStoreBackend
+      base_directory: expectations/
+
+  validations_store:
+    class_name: ValidationsStore
+    store_backend:
+      class_name: TupleFilesystemStoreBackend
+      base_directory: uncommitted/validations/
+
+  checkpoint_store:
+    class_name: CheckpointStore
+    store_backend:
+      class_name: TupleFilesystemStoreBackend
+      base_directory: checkpoints/
+
+  evaluation_parameter_store:
+    class_name: EvaluationParameterStore
+expectations_store_name: expectations_store
+validations_store_name: validations_store
+evaluation_parameter_store_name: evaluation_parameter_store
+checkpoint_store_name: checkpoint_store
+fluent_datasources:
+  runtime_pandas:
+    type: pandas
+    assets:
+      source_validation:
+        type: dataframe
+        batch_metadata: {}
+plugins_directory:
+notebooks:
+data_docs_sites:
+  local_site:
+    class_name: SiteBuilder
+    store_backend:
+      class_name: TupleFilesystemStoreBackend
+      base_directory: uncommitted/data_docs/local_site/
+    site_index_builder:
+      class_name: DefaultSiteIndexBuilder
+config_variables_file_path:
+anonymous_usage_statistics:
+  data_context_id: 5c81ef49-01dd-456a-8464-dbf1b5613311
+  enabled: true
+include_rendered_content:
+  globally: false
+  expectation_suite: false
+  expectation_validation_result: false
