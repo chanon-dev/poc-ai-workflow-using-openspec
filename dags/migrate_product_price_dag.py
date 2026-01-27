@@ -138,8 +138,17 @@ def extract_data(**context):
     return len(df)
 
 
-def run_gx_validation(df, suite_name, context_root, run_name="validation"):
-    """Run GX validation on a dataframe and persist results to data docs."""
+def run_gx_validation(df, suite_name, context_root, run_name="validation",
+                      evaluation_parameters=None):
+    """Run GX validation on a dataframe and persist results to data docs.
+
+    Args:
+        df: pandas DataFrame to validate
+        suite_name: Name of the expectation suite
+        context_root: Path to GX context directory
+        run_name: Identifier for this validation run
+        evaluation_parameters: Dict of runtime parameters for $PARAMETER references
+    """
     import great_expectations as gx
     from great_expectations.core.batch import RuntimeBatchRequest
     from great_expectations.core import ExpectationSuiteValidationResult
@@ -151,6 +160,8 @@ def run_gx_validation(df, suite_name, context_root, run_name="validation"):
     from great_expectations.core.run_identifier import RunIdentifier
 
     logging.info(f"Running GX validation with suite: {suite_name}")
+    if evaluation_parameters:
+        logging.info(f"Evaluation parameters: {evaluation_parameters}")
 
     # Get GX context
     gx_context = gx.get_context(context_root_dir=context_root)
@@ -192,8 +203,11 @@ def run_gx_validation(df, suite_name, context_root, run_name="validation"):
         expectation_suite_name=suite_name,
     )
 
-    # Run validation
-    results = validator.validate(result_format="COMPLETE")
+    # Run validation with evaluation parameters (for $PARAMETER references)
+    results = validator.validate(
+        result_format="COMPLETE",
+        evaluation_parameters=evaluation_parameters or {}
+    )
 
     # Create validation result identifier for storing
     run_id = RunIdentifier(run_name=run_name)
@@ -271,13 +285,14 @@ def validate_extract_data(**context):
     df = pd.read_csv(OUTPUT_FILE)
     actual_count = len(df)
 
-    # Run GX validation
+    # Run GX validation with evaluation parameters
     context_root = os.path.join(AIRFLOW_HOME, "great_expectations")
     results = run_gx_validation(
         df=df,
         suite_name="extract_product_price",
         context_root=context_root,
         run_name="extract_validation",
+        evaluation_parameters={"source_count": source_count}
     )
 
     # Log results
@@ -285,10 +300,6 @@ def validate_extract_data(**context):
         status = "PASS" if result.success else "WARN"
         exp_type = result.expectation_config.expectation_type
         logging.info(f"Extract Validation: {status} - {exp_type}")
-
-    # Additional row count check
-    if actual_count != source_count:
-        logging.warning(f"Row count mismatch - Source: {source_count}, CSV: {actual_count}")
 
     logging.info(f"Extract validation: {actual_count} rows extracted")
 
@@ -323,13 +334,14 @@ def validate_postmig_data(**context):
     actual_count = len(df)
     difference = source_count - actual_count
 
-    # Run GX validation
+    # Run GX validation with evaluation parameters
     context_root = os.path.join(AIRFLOW_HOME, "great_expectations")
     results = run_gx_validation(
         df=df,
         suite_name="postmig_product_price",
         context_root=context_root,
         run_name="postmig_validation",
+        evaluation_parameters={"source_count": source_count}
     )
 
     # Log results
@@ -338,14 +350,10 @@ def validate_postmig_data(**context):
         exp_type = result.expectation_config.expectation_type
         logging.info(f"PostMig Validation: {status} - {exp_type}")
 
-    # Log reconciliation results (don't fail on mismatch per proposal)
-    if actual_count != source_count:
-        logging.warning(
-            f"RECONCILIATION ALERT: Source={source_count}, Loaded={actual_count}, "
-            f"Diff={difference}"
-        )
-    else:
-        logging.info(f"Reconciliation OK: {actual_count} records loaded")
+    # Log reconciliation summary
+    logging.info(
+        f"Reconciliation: Source={source_count}, Loaded={actual_count}, Diff={difference}"
+    )
 
     return {
         "success": results.success,
