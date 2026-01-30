@@ -31,7 +31,6 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.providers.standard.operators.python import PythonOperator
-from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.oracle.hooks.oracle import OracleHook
 import oracledb
 
@@ -50,6 +49,89 @@ DATA_DIR = os.path.join(SALESFORCE_DIR, "data")
 LOG_DIR = os.path.join(SALESFORCE_DIR, "logs")
 CONFIG_DIR = os.path.join(SALESFORCE_DIR, "dataloader_conf")
 OUTPUT_FILE = os.path.join(DATA_DIR, "Product2.csv")
+
+# Batch Configuration
+DEFAULT_BATCH_SIZE = 40000
+BATCH_PREFIX = "Product2_batch"
+
+
+def get_batch_config(**context):
+    """Get batch configuration from DAG config > Airflow Variable > Default.
+
+    Priority: DAG run config > Airflow Variable > Default value
+
+    Returns:
+        dict: {"batch_size": int, "start_batch": int}
+    """
+    from airflow.models import Variable
+
+    dag_run = context.get("dag_run")
+    dag_conf = dag_run.conf if dag_run and dag_run.conf else {}
+
+    # Batch size: DAG config > Airflow Variable > Default
+    batch_size = dag_conf.get("batch_size")
+    if batch_size is None:
+        batch_size = int(Variable.get("batch_size", default_var=DEFAULT_BATCH_SIZE))
+    batch_size = int(batch_size)
+
+    # Warn if batch size is too small
+    if batch_size < 1000:
+        logging.warning(f"Batch size {batch_size} is very small. Recommended minimum: 1000")
+
+    # Start batch: DAG config > Default (1)
+    start_batch = int(dag_conf.get("start_batch", 1))
+
+    return {"batch_size": batch_size, "start_batch": start_batch}
+
+
+def split_dataframe_to_batches(df, batch_size):
+    """Split DataFrame into batches using numpy.array_split.
+
+    Args:
+        df: pandas DataFrame to split
+        batch_size: Number of rows per batch
+
+    Returns:
+        list: List of DataFrame batches
+    """
+    import math
+    import numpy as np
+
+    if len(df) == 0:
+        return []
+
+    n_batches = math.ceil(len(df) / batch_size)
+    batches = np.array_split(df, n_batches)
+
+    logging.info(f"Split {len(df)} records into {len(batches)} batches (batch_size={batch_size})")
+    return batches
+
+
+def write_batch_files(batches, prefix, data_dir):
+    """Write batch DataFrames to CSV files with zero-padded naming.
+
+    Args:
+        batches: List of DataFrame batches
+        prefix: File prefix (e.g., "Product2_batch")
+        data_dir: Output directory path
+
+    Returns:
+        list: List of created file paths
+    """
+    import csv
+
+    os.makedirs(data_dir, exist_ok=True)
+    batch_files = []
+
+    for i, batch_df in enumerate(batches, start=1):
+        filename = f"{prefix}_{i:03d}.csv"
+        filepath = os.path.join(data_dir, filename)
+        batch_df.to_csv(filepath, index=False, quoting=csv.QUOTE_ALL)
+        logging.info(f"Wrote batch {i:03d}: {len(batch_df)} records to {filename}")
+        batch_files.append(filepath)
+
+    return batch_files
+
 
 # SQL Query following Data Dictionary 12_Product & Price
 # Uses Oracle column names directly (mapped via SDL)
@@ -71,7 +153,7 @@ JOIN KPS_T_APPRV_M a
     AND r.PROD_SERV_CODE = a.PROD_SERV_CODE
 LEFT JOIN KPS_R_UNIT u
     ON a.UNIT_CODE = u.UNIT_CODE
-WHERE ROWNUM <= 1
+WHERE ROWNUM <= 80000
 """
 
 
@@ -104,14 +186,38 @@ def format_decimal(val, precision=2):
 
 
 def extract_data(**context):
-    """Extract data from Oracle using multi-table JOIN."""
+    """Extract data from Oracle and split into batch files.
+
+    Returns via XCom:
+        dict: {
+            "total_records": int,
+            "batch_count": int,
+            "batch_size": int,
+            "batch_files": list[str]
+        }
+    """
     logging.info("Extracting Product & Price data from Oracle...")
+
+    # Get batch configuration
+    batch_config = get_batch_config(**context)
+    batch_size = batch_config["batch_size"]
 
     # Execute query via OracleHook
     oracle_hook = OracleHook(oracle_conn_id="oracle_kpc")
     df = oracle_hook.get_pandas_df(EXTRACT_QUERY)
 
-    logging.info(f"Extracted {len(df)} records")
+    total_records = len(df)
+    logging.info(f"Extracted {total_records} records")
+
+    # Handle empty extraction
+    if total_records == 0:
+        logging.warning("No records extracted from Oracle. Skipping batch file creation.")
+        return {
+            "total_records": 0,
+            "batch_count": 0,
+            "batch_size": batch_size,
+            "batch_files": []
+        }
 
     # Oracle returns uppercase column names, convert to uppercase for matching
     df.columns = [col.upper() for col in df.columns]
@@ -128,14 +234,200 @@ def extract_data(**context):
         if col in df.columns:
             df[col] = df[col].apply(format_decimal)
 
-    # Ensure output directory exists
-    os.makedirs(DATA_DIR, exist_ok=True)
+    # Split into batches and write files
+    batches = split_dataframe_to_batches(df, batch_size)
+    batch_files = write_batch_files(batches, BATCH_PREFIX, DATA_DIR)
 
-    # Write to CSV
-    df.to_csv(OUTPUT_FILE, index=False, quoting=csv.QUOTE_ALL)
-    logging.info(f"Wrote {len(df)} records to {OUTPUT_FILE}")
+    logging.info(f"Created {len(batch_files)} batch files from {total_records} records")
 
-    return len(df)
+    return {
+        "total_records": total_records,
+        "batch_count": len(batch_files),
+        "batch_size": batch_size,
+        "batch_files": batch_files
+    }
+
+
+def upload_batch(batch_file, config_dir, process_name):
+    """Upload a single batch file using Data Loader.
+
+    Args:
+        batch_file: Path to batch CSV file
+        config_dir: Path to Data Loader config directory
+        process_name: Name of the Data Loader process
+
+    Returns:
+        dict: {"success_count": int, "error_count": int, "batch_file": str}
+    """
+    import subprocess
+
+    batch_name = os.path.basename(batch_file).replace(".csv", "")
+    logging.info(f"Uploading batch: {batch_name}")
+
+    # Run Data Loader
+    # Define batch-specific log files
+    success_log = os.path.join(LOG_DIR, f"{batch_name}_success.csv")
+    error_log = os.path.join(LOG_DIR, f"{batch_name}_error.csv")
+
+    # Run Data Loader (Direct Java call to support dynamic arguments)
+    cmd = [
+        "java",
+        "--enable-native-access=ALL-UNNAMED",
+        "-cp",
+        "/opt/dataloader/dataloader-64.1.0.jar",
+        "com.salesforce.dataloader.process.DataLoaderRunner",
+        "run.mode=batch",
+        f"salesforce.config.dir={config_dir}",
+        f"process.name={process_name}",
+        f"dataAccess.name={batch_file}",
+        f"process.outputSuccess={success_log}",
+        f"process.outputError={error_log}",
+        "sfdc.debugMessages=true"
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        logging.error(f"Batch {batch_name} upload failed: {result.stderr}")
+        raise RuntimeError(f"Data Loader failed for {batch_name}: {result.stderr}")
+
+    # Read batch-specific logs
+    success_log = os.path.join(LOG_DIR, f"{batch_name}_success.csv")
+    error_log = os.path.join(LOG_DIR, f"{batch_name}_error.csv")
+
+    success_count = 0
+    error_count = 0
+
+    if os.path.exists(success_log):
+        with open(success_log) as f:
+            success_count = max(0, len(f.readlines()) - 1)
+
+    if os.path.exists(error_log):
+        with open(error_log) as f:
+            error_count = max(0, len(f.readlines()) - 1)
+
+    logging.info(f"Batch {batch_name}: {success_count} success, {error_count} errors")
+
+    return {
+        "success_count": success_count,
+        "error_count": error_count,
+        "batch_file": batch_file
+    }
+
+
+def upload_all_batches(batch_files, start_batch=1):
+    """Upload all batch files sequentially.
+
+    Args:
+        batch_files: List of batch file paths
+        start_batch: Batch number to start from (for resume)
+
+    Returns:
+        list: Results from each batch upload
+    """
+    results = []
+    total_success = 0
+    total_errors = 0
+
+    for i, batch_file in enumerate(batch_files, start=1):
+        # Skip batches before start_batch (for resume)
+        if i < start_batch:
+            logging.info(f"Skipping batch {i:03d} (start_batch={start_batch})")
+            continue
+
+        try:
+            result = upload_batch(batch_file, CONFIG_DIR, PROCESS_NAME)
+            results.append(result)
+            total_success += result["success_count"]
+            total_errors += result["error_count"]
+        except RuntimeError as e:
+            logging.error(f"Batch {i:03d} failed completely. Stopping upload.")
+            raise RuntimeError(f"Upload stopped at batch {i:03d}: {e}")
+
+    logging.info(f"Upload complete: {total_success} total success, {total_errors} total errors")
+    return results
+
+
+def aggregate_logs(batch_files, log_dir):
+    """Aggregate success and error logs from all batches.
+
+    Args:
+        batch_files: List of batch file paths
+        log_dir: Directory containing log files
+
+    Returns:
+        dict: {"success_file": str, "error_file": str, "success_count": int, "error_count": int}
+    """
+    import pandas as pd
+
+    all_success = []
+    all_errors = []
+
+    for batch_file in batch_files:
+        batch_name = os.path.basename(batch_file).replace(".csv", "")
+        success_log = os.path.join(log_dir, f"{batch_name}_success.csv")
+        error_log = os.path.join(log_dir, f"{batch_name}_error.csv")
+
+        if os.path.exists(success_log):
+            df = pd.read_csv(success_log)
+            all_success.append(df)
+
+        if os.path.exists(error_log):
+            df = pd.read_csv(error_log)
+            all_errors.append(df)
+
+    # Write aggregated logs
+    success_file = os.path.join(log_dir, "Product2_success.csv")
+    error_file = os.path.join(log_dir, "Product2_error.csv")
+
+    if all_success:
+        pd.concat(all_success).to_csv(success_file, index=False)
+        logging.info(f"Aggregated {sum(len(df) for df in all_success)} success records to {success_file}")
+    else:
+        pd.DataFrame().to_csv(success_file, index=False)
+
+    if all_errors:
+        pd.concat(all_errors).to_csv(error_file, index=False)
+        logging.info(f"Aggregated {sum(len(df) for df in all_errors)} error records to {error_file}")
+    else:
+        pd.DataFrame().to_csv(error_file, index=False)
+
+    return {
+        "success_file": success_file,
+        "error_file": error_file,
+        "success_count": sum(len(df) for df in all_success) if all_success else 0,
+        "error_count": sum(len(df) for df in all_errors) if all_errors else 0
+    }
+
+
+def run_dataloader_batches(**context):
+    """Run Data Loader for all batch files sequentially.
+
+    Returns:
+        dict: Aggregated upload results
+    """
+    ti = context["ti"]
+    extract_result = ti.xcom_pull(task_ids="extract_data")
+
+    batch_files = extract_result.get("batch_files", [])
+    if not batch_files:
+        logging.warning("No batch files to upload")
+        return {"total_success": 0, "total_errors": 0, "batch_results": []}
+
+    # Get start_batch config for resume
+    batch_config = get_batch_config(**context)
+    start_batch = batch_config["start_batch"]
+
+    # Upload all batches
+    batch_results = upload_all_batches(batch_files, start_batch)
+
+    # Aggregate logs
+    log_result = aggregate_logs(batch_files, LOG_DIR)
+
+    return {
+        "total_success": log_result["success_count"],
+        "total_errors": log_result["error_count"],
+        "batch_results": batch_results
+    }
 
 
 def run_gx_validation(df, suite_name, context_root, run_name="validation",
@@ -272,67 +564,137 @@ def validate_source_data(**context):
 
 
 def validate_extract_data(**context):
-    """Validate extracted CSV using Great Expectations."""
+    """Validate each extracted batch file using Great Expectations.
+
+    Returns:
+        dict: Aggregated validation results across all batches
+    """
     import pandas as pd
 
-    # Get source count from XCom
+    # Get extract result from XCom
     ti = context["ti"]
-    source_count = ti.xcom_pull(task_ids="extract_data")
+    extract_result = ti.xcom_pull(task_ids="extract_data")
 
-    logging.info(f"Validating extracted CSV (expected {source_count} rows)...")
+    total_records = extract_result.get("total_records", 0)
+    batch_files = extract_result.get("batch_files", [])
 
-    # Read the extracted CSV
-    df = pd.read_csv(OUTPUT_FILE)
-    actual_count = len(df)
+    if not batch_files:
+        logging.warning("No batch files to validate")
+        return {"success": True, "total_validated": 0, "batch_results": []}
 
-    # Run GX validation with evaluation parameters
+    logging.info(f"Validating {len(batch_files)} batch files (total {total_records} records)...")
+
     context_root = os.path.join(AIRFLOW_HOME, "great_expectations")
-    results = run_gx_validation(
-        df=df,
-        suite_name="extract_product_price",
-        context_root=context_root,
-        run_name="extract_validation",
-        evaluation_parameters={"source_count": source_count}
-    )
+    batch_results = []
+    failed_batches = []
 
-    # Log results
-    for result in results.results:
-        status = "PASS" if result.success else "WARN"
-        exp_type = result.expectation_config.expectation_type
-        logging.info(f"Extract Validation: {status} - {exp_type}")
+    # Validate each batch individually
+    for i, batch_file in enumerate(batch_files, start=1):
+        df = pd.read_csv(batch_file)
+        batch_row_count = len(df)
 
-    logging.info(f"Extract validation: {actual_count} rows extracted")
+        logging.info(f"Validating batch {i:03d}: {batch_row_count} records")
+
+        results = run_gx_validation(
+            df=df,
+            suite_name="extract_product_price",
+            context_root=context_root,
+            run_name=f"extract_validation_batch_{i:03d}",
+            evaluation_parameters={
+                "batch_row_count": batch_row_count,
+                "source_count": total_records
+            }
+        )
+
+        batch_results.append({
+            "batch": i,
+            "file": batch_file,
+            "row_count": batch_row_count,
+            "success": results.success
+        })
+
+        if not results.success:
+            failed_batches.append(i)
+            logging.warning(f"Batch {i:03d} validation failed")
+
+    # Log summary
+    total_validated = sum(br["row_count"] for br in batch_results)
+    overall_success = len(failed_batches) == 0
+
+    if failed_batches:
+        logging.warning(f"Extract validation: WARN - batches failed: {failed_batches}")
+    else:
+        logging.info(f"Extract validation: PASS - all {len(batch_files)} batches validated")
+
+    logging.info(f"Total validated: {total_validated} records")
 
     # Extract validation is non-blocking (warn only)
-    return {"success": results.success, "row_count": actual_count}
+    return {
+        "success": overall_success,
+        "total_validated": total_validated,
+        "batch_results": batch_results,
+        "failed_batches": failed_batches
+    }
 
 
 def validate_postmig_data(**context):
-    """Validate post-migration reconciliation using Great Expectations."""
+    """Validate post-migration reconciliation using Great Expectations.
+
+    Provides per-batch reconciliation and overall summary.
+    """
     import pandas as pd
 
-    # Get source count from XCom
+    # Get extract result from XCom
     ti = context["ti"]
-    source_count = ti.xcom_pull(task_ids="extract_data")
+    extract_result = ti.xcom_pull(task_ids="extract_data")
 
-    logging.info(f"Running post-migration reconciliation (expected {source_count} rows)...")
+    total_records = extract_result.get("total_records", 0)
+    batch_files = extract_result.get("batch_files", [])
 
+    logging.info(f"Running post-migration reconciliation (expected {total_records} rows)...")
+
+    # Use aggregated success log
     success_log = os.path.join(LOG_DIR, "Product2_success.csv")
 
-    if not os.path.exists(success_log):
-        logging.warning(f"Success log not found: {success_log}")
+    if not os.path.exists(success_log) or os.stat(success_log).st_size <= 1:
+        logging.warning(f"Success log not found or empty: {success_log}")
         return {
             "success": False,
-            "message": "Success log not found",
-            "source_count": source_count,
+            "message": "Success log not found or empty",
+            "source_count": total_records,
             "loaded_count": 0,
-            "difference": source_count,
+            "difference": total_records,
         }
 
-    # Read success log
+    # Read aggregated success log
     df = pd.read_csv(success_log)
-    actual_count = len(df)
-    difference = source_count - actual_count
+    loaded_count = len(df)
+    total_difference = total_records - loaded_count
+
+    # Per-batch reconciliation logging
+    batch_reconciliation = []
+    for i, batch_file in enumerate(batch_files, start=1):
+        batch_df = pd.read_csv(batch_file)
+        batch_extracted = len(batch_df)
+
+        # Read per-batch success log if exists
+        batch_name = os.path.basename(batch_file).replace(".csv", "")
+        batch_success_log = os.path.join(LOG_DIR, f"{batch_name}_success.csv")
+        batch_loaded = 0
+        if os.path.exists(batch_success_log):
+            batch_loaded = max(0, len(pd.read_csv(batch_success_log)))
+
+        batch_diff = batch_extracted - batch_loaded
+        batch_reconciliation.append({
+            "batch": i,
+            "extracted": batch_extracted,
+            "loaded": batch_loaded,
+            "difference": batch_diff
+        })
+        logging.info(f"Batch {i:03d}: {batch_extracted} extracted, {batch_loaded} loaded, {batch_diff} diff")
+
+    # Log summary
+    logging.info(f"Total: {total_records} extracted, {loaded_count} loaded, {total_difference} diff")
 
     # Run GX validation with evaluation parameters
     context_root = os.path.join(AIRFLOW_HOME, "great_expectations")
@@ -341,7 +703,7 @@ def validate_postmig_data(**context):
         suite_name="postmig_product_price",
         context_root=context_root,
         run_name="postmig_validation",
-        evaluation_parameters={"source_count": source_count}
+        evaluation_parameters={"source_count": total_records}
     )
 
     # Log results
@@ -350,16 +712,12 @@ def validate_postmig_data(**context):
         exp_type = result.expectation_config.expectation_type
         logging.info(f"PostMig Validation: {status} - {exp_type}")
 
-    # Log reconciliation summary
-    logging.info(
-        f"Reconciliation: Source={source_count}, Loaded={actual_count}, Diff={difference}"
-    )
-
     return {
         "success": results.success,
-        "source_count": source_count,
-        "loaded_count": actual_count,
-        "difference": difference,
+        "source_count": total_records,
+        "loaded_count": loaded_count,
+        "difference": total_difference,
+        "batch_reconciliation": batch_reconciliation
     }
 
 
@@ -428,11 +786,10 @@ with DAG(
         python_callable=validate_extract_data,
     )
 
-    # Task 4: Run Data Loader
-    # Uses master process-conf.xml (read-only)
-    run_dataloader = BashOperator(
+    # Task 4: Run Data Loader for all batches
+    run_dataloader = PythonOperator(
         task_id="run_dataloader",
-        bash_command=f"/opt/dataloader/process.sh {CONFIG_DIR} {PROCESS_NAME}",
+        python_callable=run_dataloader_batches,
     )
 
     # Task 5: Audit results

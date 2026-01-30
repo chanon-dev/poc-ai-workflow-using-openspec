@@ -97,6 +97,45 @@ Key variables in `.env`:
 - `AIRFLOW_UID` - User ID for containers
 - `AIRFLOW_IMAGE_NAME` - Docker image (default: apache/airflow:3.x)
 
+## Batch Configuration
+
+The migration DAGs support batch splitting for handling large datasets.
+
+### Configuration Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `batch_size` | 40,000 | Records per batch file |
+| `start_batch` | 1 | Batch to start from (for resume) |
+
+### How to Configure
+
+```bash
+# Option 1: DAG Run Config (highest priority)
+airflow dags trigger migrate_product_price --conf '{"batch_size": 10000}'
+
+# Option 2: Airflow Variable
+airflow variables set batch_size 50000
+
+# Resume from specific batch
+airflow dags trigger migrate_product_price --conf '{"start_batch": 3}'
+```
+
+### Output Files
+
+```text
+salesforce/data/
+├── Product2_batch_001.csv
+├── Product2_batch_002.csv
+└── ...
+
+salesforce/logs/
+├── Product2_batch_001_success.csv
+├── Product2_batch_001_error.csv
+├── Product2_success.csv          # Aggregated
+└── Product2_error.csv            # Aggregated
+```
+
 ## Web UI Access
 
 - **URL:** <http://localhost:8080>

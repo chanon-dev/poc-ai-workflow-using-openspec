@@ -5,12 +5,13 @@
 ## Table of Contents
 
 - [Pipeline Overview](#pipeline-overview)
+- [Batch Configuration](#batch-configuration)
 - [GX Validation Points](#gx-validation-points)
 - [Core Function: run_gx_validation()](#core-function-run_gx_validation)
 - [Validation Details](#validation-details)
   - [Source Validation](#1-source-validation---ตรวจสอบขอมูลตนทาง-oracle)
-  - [Extract Validation](#2-extract-validation---ตรวจสอบไฟล-csv-ที่-extract)
-  - [Post-Migration Validation](#3-post-migration-validation---reconciliation)
+  - [Extract Validation (Per-Batch)](#2-extract-validation---ตรวจสอบไฟล-csv-ที่-extract-per-batch)
+  - [Post-Migration Validation (Per-Batch)](#3-post-migration-validation---reconciliation-per-batch)
 - [Expectation Suites Reference](#expectation-suites-reference)
 - [Expectation Suite JSON Structure](#expectation-suite-json-structure)
 - [Data Quality Gates Summary](#data-quality-gates-summary)
@@ -25,16 +26,68 @@
 │     (GX)        │    │   (Oracle)  │    │      (GX)        │    │  (Salesforce) │    │   (Logs)    │    │      (GX)        │
 └─────────────────┘    └─────────────┘    └──────────────────┘    └───────────────┘    └─────────────┘    └──────────────────┘
       ❶                     ❷                    ❸                      ❹                   ❺                    ❻
+                       (Batch Split)        (Per-Batch)           (Sequential)                            (Aggregated)
 ```
 
 **Pipeline Steps:**
 
 1. **validate_source** - GX validation on Oracle source data
-2. **extract_data** - Query Oracle → CSV
-3. **validate_extract** - GX validation on extracted CSV
-4. **run_dataloader** - Call Salesforce Data Loader
-5. **audit_results** - Check error/success logs
-6. **validate_postmig** - GX reconciliation check
+2. **extract_data** - Query Oracle → Split into batch CSV files
+3. **validate_extract** - GX validation on each batch file
+4. **run_dataloader** - Upload batches sequentially to Salesforce
+5. **audit_results** - Check aggregated error/success logs
+6. **validate_postmig** - GX reconciliation check with per-batch breakdown
+
+---
+
+## Batch Configuration
+
+> **New Feature:** Batch splitting สำหรับ handle ข้อมูลจำนวนมาก
+
+### Configuration Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `batch_size` | 40,000 | จำนวน records ต่อ batch file |
+| `start_batch` | 1 | Batch ที่จะเริ่มต้น (สำหรับ resume) |
+
+### How to Configure
+
+**Option 1: DAG Run Config** (highest priority)
+
+```bash
+airflow dags trigger migrate_product_price --conf '{"batch_size": 10000}'
+```
+
+**Option 2: Airflow Variable**
+
+```bash
+airflow variables set batch_size 50000
+```
+
+**Option 3: Default** (in DAG code)
+
+```python
+DEFAULT_BATCH_SIZE = 40000
+```
+
+### Batch Output Files
+
+```
+salesforce/data/
+├── Product2_batch_001.csv    # Batch 1: rows 1-40000
+├── Product2_batch_002.csv    # Batch 2: rows 40001-80000
+└── ...
+```
+
+### Resume Functionality
+
+หาก upload ล้มเหลว สามารถ resume จาก batch ที่ต้องการ:
+
+```bash
+# Resume จาก batch 3 (ข้าม batch 1-2 ที่ upload สำเร็จแล้ว)
+airflow dags trigger migrate_product_price --conf '{"start_batch": 3}'
+```
 
 ---
 
@@ -220,9 +273,9 @@ def validate_source_data(**context):
 
 ---
 
-### 2. Extract Validation - ตรวจสอบไฟล์ CSV ที่ Extract
+### 2. Extract Validation - ตรวจสอบไฟล์ CSV ที่ Extract (Per-Batch)
 
-> Location: `migrate_product_price_dag.py:260-296`
+> Location: `migrate_product_price_dag.py:566-637`
 
 **Purpose:** ตรวจสอบว่า extract ถูกต้อง ข้อมูลไม่เพี้ยนระหว่าง transformation
 
@@ -230,42 +283,77 @@ def validate_source_data(**context):
 
 **Behavior:** **NON-BLOCKING** - Warning เท่านั้น ไม่หยุด pipeline
 
+**Batch Flow:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Per-Batch Extract Validation                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   batch_001.csv ──► GX validate ──► extract_validation_batch_001│
+│   batch_002.csv ──► GX validate ──► extract_validation_batch_002│
+│   batch_003.csv ──► GX validate ──► extract_validation_batch_003│
+│   ...                                                            │
+│                                                                  │
+│   Final: Aggregate results ──► Log summary + failed batches     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ```python
 def validate_extract_data(**context):
-    # Get source count from XCom
+    # Get extract result from XCom
     ti = context["ti"]
-    source_count = ti.xcom_pull(task_ids="extract_data")
+    extract_result = ti.xcom_pull(task_ids="extract_data")
+    batch_files = extract_result.get("batch_files", [])
 
-    # Read the extracted CSV
-    df = pd.read_csv(OUTPUT_FILE)
+    # Validate each batch individually
+    for i, batch_file in enumerate(batch_files, start=1):
+        df = pd.read_csv(batch_file)
 
-    # Run GX validation with Evaluation Parameters
-    results = run_gx_validation(
-        df=df,
-        suite_name="extract_product_price",
-        context_root=context_root,
-        run_name="extract_validation",
-        evaluation_parameters={"source_count": source_count}  # Pass runtime value
-    )
+        results = run_gx_validation(
+            df=df,
+            suite_name="extract_product_price",
+            context_root=context_root,
+            run_name=f"extract_validation_batch_{i:03d}",  # Per-batch run name
+            evaluation_parameters={
+                "batch_row_count": len(df),
+                "source_count": total_records
+            }
+        )
 
-    # NON-BLOCKING: Log warning only
-    for result in results.results:
-        status = "PASS" if result.success else "WARN"
-        logging.info(f"Extract Validation: {status} - {exp_type}")
+        if not results.success:
+            failed_batches.append(i)
+
+    # NON-BLOCKING: Log warning with failed batch numbers
+    if failed_batches:
+        logging.warning(f"Extract validation: WARN - batches failed: {failed_batches}")
+```
+
+**Per-Batch Data Docs:**
+
+แต่ละ batch จะมี validation result แยกกันใน Data Docs:
+
+```
+great_expectations/uncommitted/validations/
+└── extract_product_price/
+    ├── extract_validation_batch_001/
+    ├── extract_validation_batch_002/
+    └── extract_validation_batch_003/
 ```
 
 **Expectation Suite:** `extract_product_price.json`
 
 | Expectation | Column | Description |
 |-------------|--------|-------------|
-| `expect_table_row_count_to_equal` | - | จำนวน row = source_count |
+| `expect_table_row_count_to_be_between` | - | batch มีข้อมูลอย่างน้อย 1 row |
 | `expect_column_values_to_be_between` | KPS_PRICE_EXC_VAT | ราคาต้อง >= 0 |
 
 ---
 
-### 3. Post-Migration Validation - Reconciliation
+### 3. Post-Migration Validation - Reconciliation (Per-Batch)
 
-> Location: `migrate_product_price_dag.py:299-355`
+> Location: `migrate_product_price_dag.py:640-721`
 
 **Purpose:** ตรวจสอบว่า load ครบ ไม่มีข้อมูลหาย (Reconciliation)
 
@@ -273,29 +361,69 @@ def validate_extract_data(**context):
 
 **Behavior:** **NON-BLOCKING** - Alert เท่านั้น แจ้งเตือนแต่ไม่หยุด pipeline
 
+**Per-Batch Reconciliation:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              Per-Batch Reconciliation Report                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   Batch   Extracted    Loaded    Difference                     │
+│   ─────   ─────────    ──────    ──────────                     │
+│   001     40,000       39,998    2                              │
+│   002     40,000       40,000    0                              │
+│   003     800          800       0                              │
+│   ─────   ─────────    ──────    ──────────                     │
+│   TOTAL   80,800       80,798    2                              │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ```python
 def validate_postmig_data(**context):
-    # Get source count from XCom
+    # Get extract result from XCom
     ti = context["ti"]
-    source_count = ti.xcom_pull(task_ids="extract_data")
+    extract_result = ti.xcom_pull(task_ids="extract_data")
+    batch_files = extract_result.get("batch_files", [])
 
-    # Read success log from Data Loader
+    # Per-batch reconciliation logging
+    batch_reconciliation = []
+    for i, batch_file in enumerate(batch_files, start=1):
+        batch_df = pd.read_csv(batch_file)
+        batch_extracted = len(batch_df)
+
+        # Read per-batch success log
+        batch_name = os.path.basename(batch_file).replace(".csv", "")
+        batch_success_log = os.path.join(LOG_DIR, f"{batch_name}_success.csv")
+        batch_loaded = len(pd.read_csv(batch_success_log))
+
+        batch_diff = batch_extracted - batch_loaded
+        logging.info(f"Batch {i:03d}: {batch_extracted} extracted, {batch_loaded} loaded, {batch_diff} diff")
+
+    # Use aggregated success log for GX validation
+    success_log = os.path.join(LOG_DIR, "Product2_success.csv")
     df = pd.read_csv(success_log)
-    actual_count = len(df)
 
-    # Run GX validation with Evaluation Parameters
     results = run_gx_validation(
         df=df,
         suite_name="postmig_product_price",
         context_root=context_root,
         run_name="postmig_validation",
-        evaluation_parameters={"source_count": source_count}  # Pass runtime value
+        evaluation_parameters={"source_count": total_records}
     )
+```
 
-    # Log reconciliation summary
-    logging.info(
-        f"Reconciliation: Source={source_count}, Loaded={actual_count}, Diff={difference}"
-    )
+**Log Aggregation:**
+
+```
+salesforce/logs/
+├── Product2_batch_001_success.csv   # Per-batch logs
+├── Product2_batch_001_error.csv
+├── Product2_batch_002_success.csv
+├── Product2_batch_002_error.csv
+├── ...
+├── Product2_success.csv             # Aggregated success log
+└── Product2_error.csv               # Aggregated error log
 ```
 
 **Expectation Suite:** `postmig_product_price.json`
