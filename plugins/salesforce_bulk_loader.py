@@ -131,6 +131,10 @@ class SalesforceBulkLoader:
             f"{self.base_url}/jobs/ingest",
             json=job_data,
         )
+        if not response.ok:
+            logger.error(
+                f"Create job failed (HTTP {response.status_code}): {response.text}"
+            )
         response.raise_for_status()
 
         job_id = response.json()["id"]
@@ -246,8 +250,9 @@ class SalesforceBulkLoader:
         self,
         object_name: str,
         csv_file_path: str,
-        external_id_field: str,
+        external_id_field: str = "",
         use_gzip: bool = True,
+        operation: str = "upsert",
     ) -> JobResult:
         """
         Load a single CSV file to Salesforce.
@@ -259,12 +264,13 @@ class SalesforceBulkLoader:
             csv_file_path: Path to CSV file
             external_id_field: External ID field for upsert
             use_gzip: Whether to GZIP compress
+            operation: insert, update, upsert, delete
 
         Returns:
             JobResult with outcome
         """
         try:
-            job_id = self.create_job(object_name, "upsert", external_id_field)
+            job_id = self.create_job(object_name, operation, external_id_field)
             self.upload_data(job_id, csv_file_path, use_gzip)
             self.close_job(job_id)
             result = self.wait_for_job(job_id)
@@ -292,9 +298,10 @@ class SalesforceBulkLoader:
         self,
         object_name: str,
         csv_files: list[str],
-        external_id_field: str,
+        external_id_field: str = "",
         use_gzip: bool = True,
         max_workers: int | None = None,
+        operation: str = "upsert",
     ) -> list[JobResult]:
         """
         Load multiple CSV files in parallel.
@@ -307,6 +314,7 @@ class SalesforceBulkLoader:
             external_id_field: External ID field
             use_gzip: Whether to GZIP compress
             max_workers: Override max concurrent jobs
+            operation: insert, update, upsert, delete
 
         Returns:
             List of JobResult for all files
@@ -319,7 +327,7 @@ class SalesforceBulkLoader:
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {
                 executor.submit(
-                    self.load_file, object_name, f, external_id_field, use_gzip
+                    self.load_file, object_name, f, external_id_field, use_gzip, operation
                 ): f
                 for f in csv_files
             }
