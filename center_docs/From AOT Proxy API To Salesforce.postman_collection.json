@@ -1,0 +1,2276 @@
+{
+  "info": {
+    "_postman_id": "5ee4e36c-d59e-4914-8b6b-632a33a41a49",
+    "name": "From AOT Proxy API To Salesforce",
+    "description": "API specification for AOT Proxy to upload daily sales transactions to Salesforce.\n\nAOT Proxy receives transaction data from AOT and:\n1. Validates transaction data (field validation, data type, empty values, defaults)\n2. If validation fails: Updates TMS_Daily_Sales_File__c status to \"Failed\" via PATCH by external ID\n3. If validation passes: Updates TMS_Daily_Sales_File__c status to \"New\" via PATCH by external ID\n4. Upserts Sales Transaction records using Bulk API (>10k records) or REST API (<10k records)\n5. If bulk upload fails: Updates TMS_Daily_Sales_File__c status to \"In Progress\" (reset) with updateOnly=true\n6. If bulk upload succeeds: Updates TMS_Daily_Sales_File__c status to \"Uploaded\" with updateOnly=true\n\nReference: seq-diagram/flow-29#1-02-upsert-transactions.md\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "25125714"
+  },
+  "item": [
+    {
+      "name": "services",
+      "item": [
+        {
+          "name": "oauth2",
+          "item": [
+            {
+              "name": "token",
+              "item": [
+                {
+                  "name": "OAuth 2.0 Client Credentials Flow",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/x-www-form-urlencoded"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "urlencoded",
+                      "urlencoded": [
+                        {
+                          "description": "OAuth grant type",
+                          "key": "grant_type",
+                          "value": "client_credentials"
+                        },
+                        {
+                          "description": "Consumer key from the connected app definition",
+                          "key": "client_id",
+                          "value": "3MVG9...ABC123"
+                        },
+                        {
+                          "description": "Consumer secret from the connected app definition",
+                          "key": "client_secret",
+                          "value": "1234567890ABCDEF"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/services/oauth2/token",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "services",
+                        "oauth2",
+                        "token"
+                      ]
+                    },
+                    "description": "Obtain an access token using OAuth 2.0 client credentials flow for server-to-server integration.\nThis flow is used when no user interaction is required and the application acts on its own behalf.\n\nAOT Proxy must authenticate to Salesforce using this endpoint before calling other APIs.\n"
+                  },
+                  "response": [
+                    {
+                      "name": "Successfully authenticated and received access token",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/x-www-form-urlencoded"
+                          },
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "body": {
+                          "mode": "urlencoded",
+                          "urlencoded": [
+                            {
+                              "description": "OAuth grant type",
+                              "key": "grant_type",
+                              "value": "client_credentials"
+                            },
+                            {
+                              "description": "Consumer key from the connected app definition",
+                              "key": "client_id",
+                              "value": "3MVG9...ABC123"
+                            },
+                            {
+                              "description": "Consumer secret from the connected app definition",
+                              "key": "client_secret",
+                              "value": "1234567890ABCDEF"
+                            }
+                          ]
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/services/oauth2/token",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "services",
+                            "oauth2",
+                            "token"
+                          ]
+                        }
+                      },
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"access_token\": \"00D...xyz!ARsAQA...\",\n  \"instance_url\": \"https://yourInstance.my.salesforce.com\",\n  \"id\": \"https://login.salesforce.com/id/00Dxx0000001gERCAY/005xx000001SwiUAAS\",\n  \"token_type\": \"Bearer\",\n  \"issued_at\": \"1622547891234\",\n  \"signature\": \"abcdef1234567890\"\n}"
+                    },
+                    {
+                      "name": "Bad request - invalid parameters or missing required fields",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/x-www-form-urlencoded"
+                          },
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "body": {
+                          "mode": "urlencoded",
+                          "urlencoded": [
+                            {
+                              "description": "OAuth grant type",
+                              "key": "grant_type",
+                              "value": "client_credentials"
+                            },
+                            {
+                              "description": "Consumer key from the connected app definition",
+                              "key": "client_id",
+                              "value": "3MVG9...ABC123"
+                            },
+                            {
+                              "description": "Consumer secret from the connected app definition",
+                              "key": "client_secret",
+                              "value": "1234567890ABCDEF"
+                            }
+                          ]
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/services/oauth2/token",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "services",
+                            "oauth2",
+                            "token"
+                          ]
+                        }
+                      },
+                      "status": "Bad Request",
+                      "code": 400,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"error\": \"invalid_grant\",\n  \"error_description\": \"authentication failure\"\n}"
+                    },
+                    {
+                      "name": "Unauthorized - invalid client credentials",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/x-www-form-urlencoded"
+                          },
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "body": {
+                          "mode": "urlencoded",
+                          "urlencoded": [
+                            {
+                              "description": "OAuth grant type",
+                              "key": "grant_type",
+                              "value": "client_credentials"
+                            },
+                            {
+                              "description": "Consumer key from the connected app definition",
+                              "key": "client_id",
+                              "value": "3MVG9...ABC123"
+                            },
+                            {
+                              "description": "Consumer secret from the connected app definition",
+                              "key": "client_secret",
+                              "value": "1234567890ABCDEF"
+                            }
+                          ]
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/services/oauth2/token",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "services",
+                            "oauth2",
+                            "token"
+                          ]
+                        }
+                      },
+                      "status": "Unauthorized",
+                      "code": 401,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"error\": \"invalid_client\",\n  \"error_description\": \"invalid client credentials\"\n}"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "data",
+          "item": [
+            {
+              "name": "v66.0",
+              "item": [
+                {
+                  "name": "sobjects",
+                  "item": [
+                    {
+                      "name": "TMS_Daily_Sales_File__c",
+                      "item": [
+                        {
+                          "name": "TMS_External_File_Ref__c",
+                          "item": [
+                            {
+                              "name": "{externalFileRef}",
+                              "item": [
+                                {
+                                  "name": "Upsert or update TMS Daily Sales File by external ID (Primary endpoint)",
+                                  "request": {
+                                    "method": "PATCH",
+                                    "header": [
+                                      {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                      },
+                                      {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                      }
+                                    ],
+                                    "body": {
+                                      "mode": "raw",
+                                      "raw": "{\n  \"TMS_File_Name__c\": \"0901001_042_Sales_20251127042907.txt\",\n  \"TMS_Business_Type__c\": \"bu\",\n  \"TMS_Comapny_Code__c\": \"0901001\",\n  \"TMS_Shop_Code__c\": \"042\",\n  \"TMS_Branch_Code__c\": \"042\",\n  \"TMS_Sales_Date__c\": \"2025-11-27\",\n  \"TMS_Status__c\": \"Failed\",\n  \"TMS_External_File_Ref__c\": \"0901001_042_Sales_20251127042907\",\n  \"TMS_Errors__c\": [\n    \"error#1\",\n    \"error#2\"\n  ]\n}",
+                                      "options": {
+                                        "raw": {
+                                          "headerFamily": "json",
+                                          "language": "json"
+                                        }
+                                      }
+                                    },
+                                    "url": {
+                                      "raw": "{{baseUrl}}/services/data/v66.0/sobjects/TMS_Daily_Sales_File__c/TMS_External_File_Ref__c/:externalFileRef?updateOnly=true",
+                                      "host": [
+                                        "{{baseUrl}}"
+                                      ],
+                                      "path": [
+                                        "services",
+                                        "data",
+                                        "v66.0",
+                                        "sobjects",
+                                        "TMS_Daily_Sales_File__c",
+                                        "TMS_External_File_Ref__c",
+                                        ":externalFileRef"
+                                      ],
+                                      "query": [
+                                        {
+                                          "description": "If true, only update existing records (do not create new ones)",
+                                          "key": "updateOnly",
+                                          "value": "true"
+                                        }
+                                      ],
+                                      "variable": [
+                                        {
+                                          "key": "externalFileRef",
+                                          "value": "0904002_bank_20251127001001",
+                                          "description": "External file reference ID (TMS_External_File_Ref__c value)"
+                                        }
+                                      ]
+                                    },
+                                    "description": "Upsert or update TMS Daily Sales File record using external ID field (TMS_External_File_Ref__c).\n\nThis is the PRIMARY endpoint used throughout Flow-29#1-02. Since PATCH to an external ID field\nperforms UPSERT in Salesforce, this endpoint will:\n- Create the record if it doesn't exist (first time)\n- Update the record if it already exists (subsequent calls)\n\n**Stage 1: After Validation (lines 31, 39)**\n- If validation fails: Upsert with status \"Failed\"\n- If validation succeeds: Upsert with status \"Uploading\"\n\n**Stage 2: After Bulk API Upload (lines 72, 79)**\n- If bulk API fails: Update status to \"In Progress\" (reset) with updateOnly=true\n- If bulk API succeeds: Update status to \"Uploaded\" with updateOnly=true\n\nThe updateOnly query parameter prevents creating new records - it will only update existing ones.\n"
+                                  },
+                                  "response": [
+                                    {
+                                      "name": "Record updated successfully",
+                                      "originalRequest": {
+                                        "method": "PATCH",
+                                        "header": [
+                                          {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                          },
+                                          {
+                                            "key": "Accept",
+                                            "value": "application/json"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "body": {
+                                          "mode": "raw",
+                                          "raw": "{\n  \"TMS_File_Name__c\": \"0901001_042_Sales_20251127042907.txt\",\n  \"TMS_Business_Type__c\": \"bu\",\n  \"TMS_Comapny_Code__c\": \"0901001\",\n  \"TMS_Shop_Code__c\": \"042\",\n  \"TMS_Branch_Code__c\": \"042\",\n  \"TMS_Sales_Date__c\": \"2025-11-27\",\n  \"TMS_Status__c\": \"Failed\",\n  \"TMS_External_File_Ref__c\": \"0901001_042_Sales_20251127042907\",\n  \"TMS_Errors__c\": [\n    \"error#1\",\n    \"error#2\"\n  ]\n}",
+                                          "options": {
+                                            "raw": {
+                                              "headerFamily": "json",
+                                              "language": "json"
+                                            }
+                                          }
+                                        },
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/sobjects/TMS_Daily_Sales_File__c/TMS_External_File_Ref__c/:externalFileRef?updateOnly=true",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "sobjects",
+                                            "TMS_Daily_Sales_File__c",
+                                            "TMS_External_File_Ref__c",
+                                            ":externalFileRef"
+                                          ],
+                                          "query": [
+                                            {
+                                              "description": "If true, only update existing records (do not create new ones)",
+                                              "key": "updateOnly",
+                                              "value": "true"
+                                            }
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "externalFileRef",
+                                              "value": "0904002_bank_20251127001001",
+                                              "description": "External file reference ID (TMS_External_File_Ref__c value)"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "OK",
+                                      "code": 200,
+                                      "_postman_previewlanguage": "json",
+                                      "header": [
+                                        {
+                                          "key": "Content-Type",
+                                          "value": "application/json"
+                                        }
+                                      ],
+                                      "cookie": [],
+                                      "body": "{\n  \"id\": \"a0Z5f000001ABCD\",\n  \"success\": true\n}"
+                                    },
+                                    {
+                                      "name": "Record created successfully (upsert created new record)",
+                                      "originalRequest": {
+                                        "method": "PATCH",
+                                        "header": [
+                                          {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                          },
+                                          {
+                                            "key": "Accept",
+                                            "value": "application/json"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "body": {
+                                          "mode": "raw",
+                                          "raw": "{\n  \"TMS_File_Name__c\": \"0901001_042_Sales_20251127042907.txt\",\n  \"TMS_Business_Type__c\": \"bu\",\n  \"TMS_Comapny_Code__c\": \"0901001\",\n  \"TMS_Shop_Code__c\": \"042\",\n  \"TMS_Branch_Code__c\": \"042\",\n  \"TMS_Sales_Date__c\": \"2025-11-27\",\n  \"TMS_Status__c\": \"Failed\",\n  \"TMS_External_File_Ref__c\": \"0901001_042_Sales_20251127042907\",\n  \"TMS_Errors__c\": [\n    \"error#1\",\n    \"error#2\"\n  ]\n}",
+                                          "options": {
+                                            "raw": {
+                                              "headerFamily": "json",
+                                              "language": "json"
+                                            }
+                                          }
+                                        },
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/sobjects/TMS_Daily_Sales_File__c/TMS_External_File_Ref__c/:externalFileRef?updateOnly=true",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "sobjects",
+                                            "TMS_Daily_Sales_File__c",
+                                            "TMS_External_File_Ref__c",
+                                            ":externalFileRef"
+                                          ],
+                                          "query": [
+                                            {
+                                              "description": "If true, only update existing records (do not create new ones)",
+                                              "key": "updateOnly",
+                                              "value": "true"
+                                            }
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "externalFileRef",
+                                              "value": "0904002_bank_20251127001001",
+                                              "description": "External file reference ID (TMS_External_File_Ref__c value)"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Created",
+                                      "code": 201,
+                                      "_postman_previewlanguage": "json",
+                                      "header": [
+                                        {
+                                          "key": "Content-Type",
+                                          "value": "application/json"
+                                        }
+                                      ],
+                                      "cookie": [],
+                                      "body": "{\n  \"id\": \"a0Z5f000001ABCD\",\n  \"success\": true\n}"
+                                    },
+                                    {
+                                      "name": "Bad Request - Invalid data",
+                                      "originalRequest": {
+                                        "method": "PATCH",
+                                        "header": [
+                                          {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                          },
+                                          {
+                                            "key": "Accept",
+                                            "value": "application/json"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "body": {
+                                          "mode": "raw",
+                                          "raw": "{\n  \"TMS_File_Name__c\": \"0901001_042_Sales_20251127042907.txt\",\n  \"TMS_Business_Type__c\": \"bu\",\n  \"TMS_Comapny_Code__c\": \"0901001\",\n  \"TMS_Shop_Code__c\": \"042\",\n  \"TMS_Branch_Code__c\": \"042\",\n  \"TMS_Sales_Date__c\": \"2025-11-27\",\n  \"TMS_Status__c\": \"Failed\",\n  \"TMS_External_File_Ref__c\": \"0901001_042_Sales_20251127042907\",\n  \"TMS_Errors__c\": [\n    \"error#1\",\n    \"error#2\"\n  ]\n}",
+                                          "options": {
+                                            "raw": {
+                                              "headerFamily": "json",
+                                              "language": "json"
+                                            }
+                                          }
+                                        },
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/sobjects/TMS_Daily_Sales_File__c/TMS_External_File_Ref__c/:externalFileRef?updateOnly=true",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "sobjects",
+                                            "TMS_Daily_Sales_File__c",
+                                            "TMS_External_File_Ref__c",
+                                            ":externalFileRef"
+                                          ],
+                                          "query": [
+                                            {
+                                              "description": "If true, only update existing records (do not create new ones)",
+                                              "key": "updateOnly",
+                                              "value": "true"
+                                            }
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "externalFileRef",
+                                              "value": "0904002_bank_20251127001001",
+                                              "description": "External file reference ID (TMS_External_File_Ref__c value)"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Bad Request",
+                                      "code": 400,
+                                      "_postman_previewlanguage": "json",
+                                      "header": [
+                                        {
+                                          "key": "Content-Type",
+                                          "value": "application/json"
+                                        }
+                                      ],
+                                      "cookie": [],
+                                      "body": "{\n  \"message\": \"Required field missing\",\n  \"errorCode\": \"REQUIRED_FIELD_MISSING\",\n  \"fields\": [\n    \"TMS_Status__c\"\n  ]\n}"
+                                    },
+                                    {
+                                      "name": "Unauthorized - Invalid credentials",
+                                      "originalRequest": {
+                                        "method": "PATCH",
+                                        "header": [
+                                          {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "body": {
+                                          "mode": "raw",
+                                          "raw": "{\n  \"TMS_File_Name__c\": \"0901001_042_Sales_20251127042907.txt\",\n  \"TMS_Business_Type__c\": \"bu\",\n  \"TMS_Comapny_Code__c\": \"0901001\",\n  \"TMS_Shop_Code__c\": \"042\",\n  \"TMS_Branch_Code__c\": \"042\",\n  \"TMS_Sales_Date__c\": \"2025-11-27\",\n  \"TMS_Status__c\": \"Failed\",\n  \"TMS_External_File_Ref__c\": \"0901001_042_Sales_20251127042907\",\n  \"TMS_Errors__c\": [\n    \"error#1\",\n    \"error#2\"\n  ]\n}",
+                                          "options": {
+                                            "raw": {
+                                              "headerFamily": "json",
+                                              "language": "json"
+                                            }
+                                          }
+                                        },
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/sobjects/TMS_Daily_Sales_File__c/TMS_External_File_Ref__c/:externalFileRef?updateOnly=true",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "sobjects",
+                                            "TMS_Daily_Sales_File__c",
+                                            "TMS_External_File_Ref__c",
+                                            ":externalFileRef"
+                                          ],
+                                          "query": [
+                                            {
+                                              "description": "If true, only update existing records (do not create new ones)",
+                                              "key": "updateOnly",
+                                              "value": "true"
+                                            }
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "externalFileRef",
+                                              "value": "0904002_bank_20251127001001",
+                                              "description": "External file reference ID (TMS_External_File_Ref__c value)"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Unauthorized",
+                                      "code": 401,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    },
+                                    {
+                                      "name": "Record not found (when updateOnly=true and record doesn't exist)",
+                                      "originalRequest": {
+                                        "method": "PATCH",
+                                        "header": [
+                                          {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                          },
+                                          {
+                                            "key": "Accept",
+                                            "value": "application/json"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "body": {
+                                          "mode": "raw",
+                                          "raw": "{\n  \"TMS_File_Name__c\": \"0901001_042_Sales_20251127042907.txt\",\n  \"TMS_Business_Type__c\": \"bu\",\n  \"TMS_Comapny_Code__c\": \"0901001\",\n  \"TMS_Shop_Code__c\": \"042\",\n  \"TMS_Branch_Code__c\": \"042\",\n  \"TMS_Sales_Date__c\": \"2025-11-27\",\n  \"TMS_Status__c\": \"Failed\",\n  \"TMS_External_File_Ref__c\": \"0901001_042_Sales_20251127042907\",\n  \"TMS_Errors__c\": [\n    \"error#1\",\n    \"error#2\"\n  ]\n}",
+                                          "options": {
+                                            "raw": {
+                                              "headerFamily": "json",
+                                              "language": "json"
+                                            }
+                                          }
+                                        },
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/sobjects/TMS_Daily_Sales_File__c/TMS_External_File_Ref__c/:externalFileRef?updateOnly=true",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "sobjects",
+                                            "TMS_Daily_Sales_File__c",
+                                            "TMS_External_File_Ref__c",
+                                            ":externalFileRef"
+                                          ],
+                                          "query": [
+                                            {
+                                              "description": "If true, only update existing records (do not create new ones)",
+                                              "key": "updateOnly",
+                                              "value": "true"
+                                            }
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "externalFileRef",
+                                              "value": "0904002_bank_20251127001001",
+                                              "description": "External file reference ID (TMS_External_File_Ref__c value)"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Not Found",
+                                      "code": 404,
+                                      "_postman_previewlanguage": "json",
+                                      "header": [
+                                        {
+                                          "key": "Content-Type",
+                                          "value": "application/json"
+                                        }
+                                      ],
+                                      "cookie": [],
+                                      "body": "{\n  \"message\": \"No record found with external ID\",\n  \"errorCode\": \"NOT_FOUND\"\n}"
+                                    },
+                                    {
+                                      "name": "Internal Server Error",
+                                      "originalRequest": {
+                                        "method": "PATCH",
+                                        "header": [
+                                          {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "body": {
+                                          "mode": "raw",
+                                          "raw": "{\n  \"TMS_File_Name__c\": \"0901001_042_Sales_20251127042907.txt\",\n  \"TMS_Business_Type__c\": \"bu\",\n  \"TMS_Comapny_Code__c\": \"0901001\",\n  \"TMS_Shop_Code__c\": \"042\",\n  \"TMS_Branch_Code__c\": \"042\",\n  \"TMS_Sales_Date__c\": \"2025-11-27\",\n  \"TMS_Status__c\": \"Failed\",\n  \"TMS_External_File_Ref__c\": \"0901001_042_Sales_20251127042907\",\n  \"TMS_Errors__c\": [\n    \"error#1\",\n    \"error#2\"\n  ]\n}",
+                                          "options": {
+                                            "raw": {
+                                              "headerFamily": "json",
+                                              "language": "json"
+                                            }
+                                          }
+                                        },
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/sobjects/TMS_Daily_Sales_File__c/TMS_External_File_Ref__c/:externalFileRef?updateOnly=true",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "sobjects",
+                                            "TMS_Daily_Sales_File__c",
+                                            "TMS_External_File_Ref__c",
+                                            ":externalFileRef"
+                                          ],
+                                          "query": [
+                                            {
+                                              "description": "If true, only update existing records (do not create new ones)",
+                                              "key": "updateOnly",
+                                              "value": "true"
+                                            }
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "externalFileRef",
+                                              "value": "0904002_bank_20251127001001",
+                                              "description": "External file reference ID (TMS_External_File_Ref__c value)"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Internal Server Error",
+                                      "code": 500,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "jobs",
+                  "item": [
+                    {
+                      "name": "ingest",
+                      "item": [
+                        {
+                          "name": "{jobId}",
+                          "item": [
+                            {
+                              "name": "batches",
+                              "item": [
+                                {
+                                  "name": "Upload CSV data to bulk job",
+                                  "request": {
+                                    "method": "PUT",
+                                    "header": [
+                                      {
+                                        "key": "Content-Type",
+                                        "value": "text/csv"
+                                      }
+                                    ],
+                                    "body": {
+                                      "mode": "raw",
+                                      "raw": "TMS_External_Sequence_Ref__c,TMS_Business_Type__c,TMS_Shop_Code__c,TMS_Sale_No__c,TMS_Sale_Date__c,TMS_Seq__c,TMS_Prod_Serv_Code__c,TMS_Prod_Serv_Name__c,TMS_Prod_Serv_Qty__c,TMS_Total_Net_Amt_Inc_Vat__c\na1kfc000002wq6jAAA_251127-7934-37791_1,bank,7934,37791,2025-11-27,1,PROD001,Product A,2,16050.54\na1kfc000002wq6jAAA_251127-7934-37791_2,bank,7934,37791,2025-11-27,2,PROD002,Product B,1,5000.00\n"
+                                    },
+                                    "url": {
+                                      "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/batches",
+                                      "host": [
+                                        "{{baseUrl}}"
+                                      ],
+                                      "path": [
+                                        "services",
+                                        "data",
+                                        "v66.0",
+                                        "jobs",
+                                        "ingest",
+                                        ":jobId",
+                                        "batches"
+                                      ],
+                                      "variable": [
+                                        {
+                                          "key": "jobId",
+                                          "value": "750xx000000ABCD"
+                                        }
+                                      ]
+                                    },
+                                    "description": "Upload transaction item data in CSV format to the bulk ingest job"
+                                  },
+                                  "response": [
+                                    {
+                                      "name": "Data uploaded successfully",
+                                      "originalRequest": {
+                                        "method": "PUT",
+                                        "header": [
+                                          {
+                                            "key": "Content-Type",
+                                            "value": "text/csv"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "body": {
+                                          "mode": "raw",
+                                          "raw": "TMS_External_Sequence_Ref__c,TMS_Business_Type__c,TMS_Shop_Code__c,TMS_Sale_No__c,TMS_Sale_Date__c,TMS_Seq__c,TMS_Prod_Serv_Code__c,TMS_Prod_Serv_Name__c,TMS_Prod_Serv_Qty__c,TMS_Total_Net_Amt_Inc_Vat__c\na1kfc000002wq6jAAA_251127-7934-37791_1,bank,7934,37791,2025-11-27,1,PROD001,Product A,2,16050.54\na1kfc000002wq6jAAA_251127-7934-37791_2,bank,7934,37791,2025-11-27,2,PROD002,Product B,1,5000.00\n"
+                                        },
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/batches",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "batches"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Created",
+                                      "code": 201,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    },
+                                    {
+                                      "name": "Bad Request",
+                                      "originalRequest": {
+                                        "method": "PUT",
+                                        "header": [
+                                          {
+                                            "key": "Content-Type",
+                                            "value": "text/csv"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "body": {
+                                          "mode": "raw",
+                                          "raw": "TMS_External_Sequence_Ref__c,TMS_Business_Type__c,TMS_Shop_Code__c,TMS_Sale_No__c,TMS_Sale_Date__c,TMS_Seq__c,TMS_Prod_Serv_Code__c,TMS_Prod_Serv_Name__c,TMS_Prod_Serv_Qty__c,TMS_Total_Net_Amt_Inc_Vat__c\na1kfc000002wq6jAAA_251127-7934-37791_1,bank,7934,37791,2025-11-27,1,PROD001,Product A,2,16050.54\na1kfc000002wq6jAAA_251127-7934-37791_2,bank,7934,37791,2025-11-27,2,PROD002,Product B,1,5000.00\n"
+                                        },
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/batches",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "batches"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Bad Request",
+                                      "code": 400,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    },
+                                    {
+                                      "name": "Unauthorized",
+                                      "originalRequest": {
+                                        "method": "PUT",
+                                        "header": [
+                                          {
+                                            "key": "Content-Type",
+                                            "value": "text/csv"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "body": {
+                                          "mode": "raw",
+                                          "raw": "TMS_External_Sequence_Ref__c,TMS_Business_Type__c,TMS_Shop_Code__c,TMS_Sale_No__c,TMS_Sale_Date__c,TMS_Seq__c,TMS_Prod_Serv_Code__c,TMS_Prod_Serv_Name__c,TMS_Prod_Serv_Qty__c,TMS_Total_Net_Amt_Inc_Vat__c\na1kfc000002wq6jAAA_251127-7934-37791_1,bank,7934,37791,2025-11-27,1,PROD001,Product A,2,16050.54\na1kfc000002wq6jAAA_251127-7934-37791_2,bank,7934,37791,2025-11-27,2,PROD002,Product B,1,5000.00\n"
+                                        },
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/batches",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "batches"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Unauthorized",
+                                      "code": 401,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "name": "successfulResults",
+                              "item": [
+                                {
+                                  "name": "Get successful records from bulk job",
+                                  "request": {
+                                    "method": "GET",
+                                    "header": [
+                                      {
+                                        "key": "Accept",
+                                        "value": "text/csv"
+                                      }
+                                    ],
+                                    "url": {
+                                      "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/successfulResults",
+                                      "host": [
+                                        "{{baseUrl}}"
+                                      ],
+                                      "path": [
+                                        "services",
+                                        "data",
+                                        "v66.0",
+                                        "jobs",
+                                        "ingest",
+                                        ":jobId",
+                                        "successfulResults"
+                                      ],
+                                      "variable": [
+                                        {
+                                          "key": "jobId",
+                                          "value": "750xx000000ABCD"
+                                        }
+                                      ]
+                                    },
+                                    "description": "Retrieve CSV data of successfully processed records from the bulk job.\nOnly available after job reaches JobComplete state.\n\nUse this to:\n- Confirm which transaction item records were successfully upserted\n- Reconcile transaction item data\n- Update TMS_Daily_Sales_File__c with success count\n"
+                                  },
+                                  "response": [
+                                    {
+                                      "name": "Successful results retrieved",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "key": "Accept",
+                                            "value": "text/csv"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/successfulResults",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "successfulResults"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "OK",
+                                      "code": 200,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [
+                                        {
+                                          "key": "Content-Type",
+                                          "value": "text/csv"
+                                        }
+                                      ],
+                                      "cookie": [],
+                                      "body": "sf__Id,sf__Created,TMS_External_Sequence_Ref__c,TMS_Business_Type__c,TMS_Shop_Code__c,TMS_Sale_No__c,TMS_Sale_Date__c,TMS_Seq__c,TMS_Total_Net_Amt_Inc_Vat__c\na0Y5f000001ABC1,true,a1kfc000002wq6jAAA_251127-7934-37791_1,bank,7934,37791,2025-11-27,1,16050.54\na0Y5f000001ABC2,true,a1kfc000002wq6jAAA_251127-7934-37791_2,bank,7934,37791,2025-11-27,2,5000.00\n"
+                                    },
+                                    {
+                                      "name": "Bad Request - Job not complete yet",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/successfulResults",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "successfulResults"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Bad Request",
+                                      "code": 400,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    },
+                                    {
+                                      "name": "Unauthorized",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/successfulResults",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "successfulResults"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Unauthorized",
+                                      "code": 401,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    },
+                                    {
+                                      "name": "Job not found",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/successfulResults",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "successfulResults"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Not Found",
+                                      "code": 404,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "name": "failedResults",
+                              "item": [
+                                {
+                                  "name": "Get failed records from bulk job",
+                                  "request": {
+                                    "method": "GET",
+                                    "header": [
+                                      {
+                                        "key": "Accept",
+                                        "value": "text/csv"
+                                      }
+                                    ],
+                                    "url": {
+                                      "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/failedResults",
+                                      "host": [
+                                        "{{baseUrl}}"
+                                      ],
+                                      "path": [
+                                        "services",
+                                        "data",
+                                        "v66.0",
+                                        "jobs",
+                                        "ingest",
+                                        ":jobId",
+                                        "failedResults"
+                                      ],
+                                      "variable": [
+                                        {
+                                          "key": "jobId",
+                                          "value": "750xx000000ABCD"
+                                        }
+                                      ]
+                                    },
+                                    "description": "Retrieve CSV data of failed records with error details from the bulk job.\nOnly available after job reaches JobComplete state.\n\nUse this to:\n- Identify which specific transaction items failed\n- Get detailed error messages for each failed record\n- Implement retry logic for failed records\n- Update TMS_Daily_Sales_File__c with failure details\n"
+                                  },
+                                  "response": [
+                                    {
+                                      "name": "Failed results retrieved",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "key": "Accept",
+                                            "value": "text/csv"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/failedResults",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "failedResults"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "OK",
+                                      "code": 200,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [
+                                        {
+                                          "key": "Content-Type",
+                                          "value": "text/csv"
+                                        }
+                                      ],
+                                      "cookie": [],
+                                      "body": "sf__Id,sf__Error,TMS_External_Sequence_Ref__c,TMS_Business_Type__c,TMS_Shop_Code__c,TMS_Sale_No__c,TMS_Sale_Date__c,TMS_Seq__c,TMS_Total_Net_Amt_Inc_Vat__c\n,REQUIRED_FIELD_MISSING:Required fields are missing: [TMS_External_Sequence_Ref__c],a1kfc000002wq6jAAA_251127-7934-37791_3,bank,7934,37791,2025-11-27,3,\n,INVALID_TYPE_ON_FIELD_IN_RECORD:Amount: value not of required type,a1kfc000002wq6jAAA_251127-7934-37791_4,bank,7934,37791,2025-11-27,4,INVALID\n,DUPLICATE_VALUE:duplicate value found: TMS_External_Sequence_Ref__c duplicates value on record,a1kfc000002wq6jAAA_251127-7934-37791_1,bank,7934,37791,2025-11-27,1,16050.54\n"
+                                    },
+                                    {
+                                      "name": "Bad Request - Job not complete yet",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/failedResults",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "failedResults"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Bad Request",
+                                      "code": 400,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    },
+                                    {
+                                      "name": "Unauthorized",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/failedResults",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "failedResults"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Unauthorized",
+                                      "code": 401,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    },
+                                    {
+                                      "name": "Job not found or no failures",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/failedResults",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "failedResults"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Not Found",
+                                      "code": 404,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "name": "unprocessedrecords",
+                              "item": [
+                                {
+                                  "name": "Get unprocessed records from bulk job",
+                                  "request": {
+                                    "method": "GET",
+                                    "header": [
+                                      {
+                                        "key": "Accept",
+                                        "value": "text/csv"
+                                      }
+                                    ],
+                                    "url": {
+                                      "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/unprocessedrecords",
+                                      "host": [
+                                        "{{baseUrl}}"
+                                      ],
+                                      "path": [
+                                        "services",
+                                        "data",
+                                        "v66.0",
+                                        "jobs",
+                                        "ingest",
+                                        ":jobId",
+                                        "unprocessedrecords"
+                                      ],
+                                      "variable": [
+                                        {
+                                          "key": "jobId",
+                                          "value": "750xx000000ABCD"
+                                        }
+                                      ]
+                                    },
+                                    "description": "Retrieve CSV data of records that were not processed.\nOnly available after job reaches JobComplete, Failed, or Aborted state.\n\nRecords may be unprocessed due to:\n- Job was aborted\n- System errors during processing\n- Timeout issues\n\nUse this to identify records that need to be resubmitted.\n"
+                                  },
+                                  "response": [
+                                    {
+                                      "name": "Unprocessed results retrieved",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "key": "Accept",
+                                            "value": "text/csv"
+                                          },
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/unprocessedrecords",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "unprocessedrecords"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "OK",
+                                      "code": 200,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [
+                                        {
+                                          "key": "Content-Type",
+                                          "value": "text/csv"
+                                        }
+                                      ],
+                                      "cookie": [],
+                                      "body": "TMS_External_Sequence_Ref__c,TMS_Business_Type__c,TMS_Shop_Code__c,TMS_Sale_No__c,TMS_Sale_Date__c,TMS_Seq__c,TMS_Total_Net_Amt_Inc_Vat__c\na1kfc000002wq6jAAA_251127-7934-37791_5,bank,7934,37791,2025-11-27,5,7500.00\na1kfc000002wq6jAAA_251127-7934-37791_6,bank,7934,37791,2025-11-27,6,9200.00\n"
+                                    },
+                                    {
+                                      "name": "Bad Request",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/unprocessedrecords",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "unprocessedrecords"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Bad Request",
+                                      "code": 400,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    },
+                                    {
+                                      "name": "Unauthorized",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/unprocessedrecords",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "unprocessedrecords"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Unauthorized",
+                                      "code": 401,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    },
+                                    {
+                                      "name": "Job not found or no unprocessed records",
+                                      "originalRequest": {
+                                        "method": "GET",
+                                        "header": [
+                                          {
+                                            "description": "Added as a part of security scheme: bearer",
+                                            "key": "Authorization",
+                                            "value": "Bearer <token>"
+                                          }
+                                        ],
+                                        "url": {
+                                          "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId/unprocessedrecords",
+                                          "host": [
+                                            "{{baseUrl}}"
+                                          ],
+                                          "path": [
+                                            "services",
+                                            "data",
+                                            "v66.0",
+                                            "jobs",
+                                            "ingest",
+                                            ":jobId",
+                                            "unprocessedrecords"
+                                          ],
+                                          "variable": [
+                                            {
+                                              "key": "jobId",
+                                              "value": "750xx000000ABCD"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "status": "Not Found",
+                                      "code": 404,
+                                      "_postman_previewlanguage": "text",
+                                      "header": [],
+                                      "cookie": [],
+                                      "body": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "name": "Close or abort bulk job",
+                              "request": {
+                                "method": "PATCH",
+                                "header": [
+                                  {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "key": "Accept",
+                                    "value": "application/json"
+                                  }
+                                ],
+                                "body": {
+                                  "mode": "raw",
+                                  "raw": "{\n  \"state\": \"UploadComplete\"\n}",
+                                  "options": {
+                                    "raw": {
+                                      "headerFamily": "json",
+                                      "language": "json"
+                                    }
+                                  }
+                                },
+                                "url": {
+                                  "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "services",
+                                    "data",
+                                    "v66.0",
+                                    "jobs",
+                                    "ingest",
+                                    ":jobId"
+                                  ],
+                                  "variable": [
+                                    {
+                                      "key": "jobId",
+                                      "value": "750xx000000ABCD"
+                                    }
+                                  ]
+                                },
+                                "description": "Close the bulk job to begin processing, or abort it.\nAfter uploading data, you must close the job to start processing.\n"
+                              },
+                              "response": [
+                                {
+                                  "name": "Job state updated",
+                                  "originalRequest": {
+                                    "method": "PATCH",
+                                    "header": [
+                                      {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                      },
+                                      {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                      },
+                                      {
+                                        "description": "Added as a part of security scheme: bearer",
+                                        "key": "Authorization",
+                                        "value": "Bearer <token>"
+                                      }
+                                    ],
+                                    "body": {
+                                      "mode": "raw",
+                                      "raw": "{\n  \"state\": \"UploadComplete\"\n}",
+                                      "options": {
+                                        "raw": {
+                                          "headerFamily": "json",
+                                          "language": "json"
+                                        }
+                                      }
+                                    },
+                                    "url": {
+                                      "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId",
+                                      "host": [
+                                        "{{baseUrl}}"
+                                      ],
+                                      "path": [
+                                        "services",
+                                        "data",
+                                        "v66.0",
+                                        "jobs",
+                                        "ingest",
+                                        ":jobId"
+                                      ],
+                                      "variable": [
+                                        {
+                                          "key": "jobId",
+                                          "value": "750xx000000ABCD"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "status": "OK",
+                                  "code": 200,
+                                  "_postman_previewlanguage": "json",
+                                  "header": [
+                                    {
+                                      "key": "Content-Type",
+                                      "value": "application/json"
+                                    }
+                                  ],
+                                  "cookie": [],
+                                  "body": "{\n  \"id\": \"750xx000000ABCD\",\n  \"state\": \"InProgress\"\n}"
+                                }
+                              ]
+                            },
+                            {
+                              "name": "Get bulk job status",
+                              "request": {
+                                "method": "GET",
+                                "header": [
+                                  {
+                                    "key": "Accept",
+                                    "value": "application/json"
+                                  }
+                                ],
+                                "url": {
+                                  "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "services",
+                                    "data",
+                                    "v66.0",
+                                    "jobs",
+                                    "ingest",
+                                    ":jobId"
+                                  ],
+                                  "variable": [
+                                    {
+                                      "key": "jobId",
+                                      "value": "750xx000000ABCD"
+                                    }
+                                  ]
+                                },
+                                "description": "Check the status of a bulk ingest job"
+                              },
+                              "response": [
+                                {
+                                  "name": "Job status retrieved",
+                                  "originalRequest": {
+                                    "method": "GET",
+                                    "header": [
+                                      {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                      },
+                                      {
+                                        "description": "Added as a part of security scheme: bearer",
+                                        "key": "Authorization",
+                                        "value": "Bearer <token>"
+                                      }
+                                    ],
+                                    "url": {
+                                      "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest/:jobId",
+                                      "host": [
+                                        "{{baseUrl}}"
+                                      ],
+                                      "path": [
+                                        "services",
+                                        "data",
+                                        "v66.0",
+                                        "jobs",
+                                        "ingest",
+                                        ":jobId"
+                                      ],
+                                      "variable": [
+                                        {
+                                          "key": "jobId",
+                                          "value": "750xx000000ABCD"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "status": "OK",
+                                  "code": 200,
+                                  "_postman_previewlanguage": "json",
+                                  "header": [
+                                    {
+                                      "key": "Content-Type",
+                                      "value": "application/json"
+                                    }
+                                  ],
+                                  "cookie": [],
+                                  "body": "{\n  \"id\": \"750xx000000ABCD\",\n  \"state\": \"JobComplete\",\n  \"numberRecordsProcessed\": 12500,\n  \"numberRecordsFailed\": 3,\n  \"totalProcessingTime\": 45000\n}"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Create Bulk API 2.0 Ingest Job (for > 10k records)",
+                          "request": {
+                            "method": "POST",
+                            "header": [
+                              {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                              },
+                              {
+                                "key": "Accept",
+                                "value": "application/json"
+                              }
+                            ],
+                            "body": {
+                              "mode": "raw",
+                              "raw": "{\n  \"object\": \"TMS_Temp_Sales_Transaction_Item__c\",\n  \"operation\": \"upsert\",\n  \"externalIdFieldName\": \"TMS_External_Sequence_Ref__c\",\n  \"contentType\": \"CSV\",\n  \"lineEnding\": \"LF\"\n}",
+                              "options": {
+                                "raw": {
+                                  "headerFamily": "json",
+                                  "language": "json"
+                                }
+                              }
+                            },
+                            "url": {
+                              "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest",
+                              "host": [
+                                "{{baseUrl}}"
+                              ],
+                              "path": [
+                                "services",
+                                "data",
+                                "v66.0",
+                                "jobs",
+                                "ingest"
+                              ]
+                            },
+                            "description": "Create a bulk ingest job for upserting large volumes of transaction item data.\nUse this for transaction items greater than 10,000 records.\n\nObject: TMS_Temp_Sales_Transaction_Item__c\nExternal ID: TMS_External_Sequence_Ref__c\n\nFlow-29#1-02 line 38: \"Bulk API (Async) > 10,000 records\"\n\nAfter creating the job:\n1. Upload CSV data using PUT /jobs/ingest/{jobId}/batches\n2. Close the job using PATCH /jobs/ingest/{jobId}\n3. Monitor job status using GET /jobs/ingest/{jobId}\n"
+                          },
+                          "response": [
+                            {
+                              "name": "Bulk job created successfully",
+                              "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                  {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "key": "Accept",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "description": "Added as a part of security scheme: bearer",
+                                    "key": "Authorization",
+                                    "value": "Bearer <token>"
+                                  }
+                                ],
+                                "body": {
+                                  "mode": "raw",
+                                  "raw": "{\n  \"object\": \"TMS_Temp_Sales_Transaction_Item__c\",\n  \"operation\": \"upsert\",\n  \"externalIdFieldName\": \"TMS_External_Sequence_Ref__c\",\n  \"contentType\": \"CSV\",\n  \"lineEnding\": \"LF\"\n}",
+                                  "options": {
+                                    "raw": {
+                                      "headerFamily": "json",
+                                      "language": "json"
+                                    }
+                                  }
+                                },
+                                "url": {
+                                  "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "services",
+                                    "data",
+                                    "v66.0",
+                                    "jobs",
+                                    "ingest"
+                                  ]
+                                }
+                              },
+                              "status": "OK",
+                              "code": 200,
+                              "_postman_previewlanguage": "json",
+                              "header": [
+                                {
+                                  "key": "Content-Type",
+                                  "value": "application/json"
+                                }
+                              ],
+                              "cookie": [],
+                              "body": "{\n  \"id\": \"750xx000000ABCD\",\n  \"object\": \"TMS_Temp_Sales_Transaction_Item__c\",\n  \"operation\": \"upsert\",\n  \"state\": \"Open\",\n  \"contentType\": \"CSV\",\n  \"createdDate\": \"2024-01-15T10:30:00.000+0000\"\n}"
+                            },
+                            {
+                              "name": "Bad Request",
+                              "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                  {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "description": "Added as a part of security scheme: bearer",
+                                    "key": "Authorization",
+                                    "value": "Bearer <token>"
+                                  }
+                                ],
+                                "body": {
+                                  "mode": "raw",
+                                  "raw": "{\n  \"object\": \"TMS_Temp_Sales_Transaction_Item__c\",\n  \"operation\": \"upsert\",\n  \"externalIdFieldName\": \"TMS_External_Sequence_Ref__c\",\n  \"contentType\": \"CSV\",\n  \"lineEnding\": \"LF\"\n}",
+                                  "options": {
+                                    "raw": {
+                                      "headerFamily": "json",
+                                      "language": "json"
+                                    }
+                                  }
+                                },
+                                "url": {
+                                  "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "services",
+                                    "data",
+                                    "v66.0",
+                                    "jobs",
+                                    "ingest"
+                                  ]
+                                }
+                              },
+                              "status": "Bad Request",
+                              "code": 400,
+                              "_postman_previewlanguage": "text",
+                              "header": [],
+                              "cookie": [],
+                              "body": null
+                            },
+                            {
+                              "name": "Unauthorized",
+                              "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                  {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "description": "Added as a part of security scheme: bearer",
+                                    "key": "Authorization",
+                                    "value": "Bearer <token>"
+                                  }
+                                ],
+                                "body": {
+                                  "mode": "raw",
+                                  "raw": "{\n  \"object\": \"TMS_Temp_Sales_Transaction_Item__c\",\n  \"operation\": \"upsert\",\n  \"externalIdFieldName\": \"TMS_External_Sequence_Ref__c\",\n  \"contentType\": \"CSV\",\n  \"lineEnding\": \"LF\"\n}",
+                                  "options": {
+                                    "raw": {
+                                      "headerFamily": "json",
+                                      "language": "json"
+                                    }
+                                  }
+                                },
+                                "url": {
+                                  "raw": "{{baseUrl}}/services/data/v66.0/jobs/ingest",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "services",
+                                    "data",
+                                    "v66.0",
+                                    "jobs",
+                                    "ingest"
+                                  ]
+                                }
+                              },
+                              "status": "Unauthorized",
+                              "code": 401,
+                              "_postman_previewlanguage": "text",
+                              "header": [],
+                              "cookie": [],
+                              "body": null
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "composite",
+                  "item": [
+                    {
+                      "name": "sobjects",
+                      "item": [
+                        {
+                          "name": "Batch Insert Summary Sales Transaction Units",
+                          "request": {
+                            "auth": {
+                              "type": "bearer",
+                              "bearer": [
+                                {
+                                  "key": "token",
+                                  "value": "{{bearerToken}}",
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "method": "POST",
+                            "header": [
+                              {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                              },
+                              {
+                                "key": "Accept",
+                                "value": "application/json"
+                              }
+                            ],
+                            "body": {
+                              "mode": "raw",
+                              "raw": "{\n  \"allOrNone\": true,\n  \"records\": [\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref1\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3625\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 101950.69,\n      \"TMS_Receipt_Number__c\": 179\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref2\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3626\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 80650.65,\n      \"TMS_Receipt_Number__c\": 142\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref3\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3630\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 597188.5,\n      \"TMS_Receipt_Number__c\": 450\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref4\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3631\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 237097.8,\n      \"TMS_Receipt_Number__c\": 336\n    }\n  ]\n}",
+                              "options": {
+                                "raw": {
+                                  "headerFamily": "json",
+                                  "language": "json"
+                                }
+                              }
+                            },
+                            "url": {
+                              "raw": "{{baseUrl}}/services/data/v66.0/composite/sobjects",
+                              "host": [
+                                "{{baseUrl}}"
+                              ],
+                              "path": [
+                                "services",
+                                "data",
+                                "v66.0",
+                                "composite",
+                                "sobjects"
+                              ]
+                            },
+                            "description": "Batch insert operation for Temp_Shop_Unit_Summary_Sales_Trn__c records.\nCreates multiple summary sales transaction unit records in a single API call.\n\nUse this endpoint for up to 200 records. The operation uses allOrNone=true,\nmeaning either all records succeed or the entire batch is rolled back.\n\nData source: Daily sales summary file (e.g., 0903001_SALES_20251127135523.txt)\nContains aggregated sales data per branch with fields:\n- File metadata (file name)\n- Shop and branch identifiers\n- Sales date and type\n- Aggregated sales amount and receipt count\n"
+                          },
+                          "response": [
+                            {
+                              "name": "Batch insert operation completed successfully",
+                              "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                  {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "key": "Accept",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "description": "Added as a part of security scheme: bearer",
+                                    "key": "Authorization",
+                                    "value": "Bearer <token>"
+                                  }
+                                ],
+                                "body": {
+                                  "mode": "raw",
+                                  "raw": "{\n  \"allOrNone\": true,\n  \"records\": [\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref1\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3625\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 101950.69,\n      \"TMS_Receipt_Number__c\": 179\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref2\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3626\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 80650.65,\n      \"TMS_Receipt_Number__c\": 142\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref3\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3630\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 597188.5,\n      \"TMS_Receipt_Number__c\": 450\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref4\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3631\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 237097.8,\n      \"TMS_Receipt_Number__c\": 336\n    }\n  ]\n}",
+                                  "options": {
+                                    "raw": {
+                                      "headerFamily": "json",
+                                      "language": "json"
+                                    }
+                                  }
+                                },
+                                "url": {
+                                  "raw": "{{baseUrl}}/services/data/v66.0/composite/sobjects",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "services",
+                                    "data",
+                                    "v66.0",
+                                    "composite",
+                                    "sobjects"
+                                  ]
+                                }
+                              },
+                              "status": "OK",
+                              "code": 200,
+                              "_postman_previewlanguage": "json",
+                              "header": [
+                                {
+                                  "key": "Content-Type",
+                                  "value": "application/json"
+                                }
+                              ],
+                              "cookie": [],
+                              "body": "[\n  {\n    \"id\": \"a0Y5f000001ABC1\",\n    \"success\": true,\n    \"errors\": []\n  },\n  {\n    \"id\": \"a0Y5f000001ABC2\",\n    \"success\": true,\n    \"errors\": []\n  },\n  {\n    \"id\": \"a0Y5f000001ABC3\",\n    \"success\": true,\n    \"errors\": []\n  },\n  {\n    \"id\": \"a0Y5f000001ABC4\",\n    \"success\": true,\n    \"errors\": []\n  }\n]"
+                            },
+                            {
+                              "name": "Bad Request - Invalid request format or data",
+                              "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                  {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "key": "Accept",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "description": "Added as a part of security scheme: bearer",
+                                    "key": "Authorization",
+                                    "value": "Bearer <token>"
+                                  }
+                                ],
+                                "body": {
+                                  "mode": "raw",
+                                  "raw": "{\n  \"allOrNone\": true,\n  \"records\": [\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref1\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3625\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 101950.69,\n      \"TMS_Receipt_Number__c\": 179\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref2\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3626\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 80650.65,\n      \"TMS_Receipt_Number__c\": 142\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref3\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3630\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 597188.5,\n      \"TMS_Receipt_Number__c\": 450\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref4\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3631\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 237097.8,\n      \"TMS_Receipt_Number__c\": 336\n    }\n  ]\n}",
+                                  "options": {
+                                    "raw": {
+                                      "headerFamily": "json",
+                                      "language": "json"
+                                    }
+                                  }
+                                },
+                                "url": {
+                                  "raw": "{{baseUrl}}/services/data/v66.0/composite/sobjects",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "services",
+                                    "data",
+                                    "v66.0",
+                                    "composite",
+                                    "sobjects"
+                                  ]
+                                }
+                              },
+                              "status": "Bad Request",
+                              "code": 400,
+                              "_postman_previewlanguage": "json",
+                              "header": [
+                                {
+                                  "key": "Content-Type",
+                                  "value": "application/json"
+                                }
+                              ],
+                              "cookie": [],
+                              "body": "{\n  \"message\": \"Maximum request size exceeded\",\n  \"errorCode\": \"REQUEST_LIMIT_EXCEEDED\"\n}"
+                            },
+                            {
+                              "name": "Unauthorized - Invalid or expired access token",
+                              "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                  {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "key": "Accept",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "description": "Added as a part of security scheme: bearer",
+                                    "key": "Authorization",
+                                    "value": "Bearer <token>"
+                                  }
+                                ],
+                                "body": {
+                                  "mode": "raw",
+                                  "raw": "{\n  \"allOrNone\": true,\n  \"records\": [\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref1\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3625\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 101950.69,\n      \"TMS_Receipt_Number__c\": 179\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref2\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3626\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 80650.65,\n      \"TMS_Receipt_Number__c\": 142\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref3\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3630\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 597188.5,\n      \"TMS_Receipt_Number__c\": 450\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref4\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3631\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 237097.8,\n      \"TMS_Receipt_Number__c\": 336\n    }\n  ]\n}",
+                                  "options": {
+                                    "raw": {
+                                      "headerFamily": "json",
+                                      "language": "json"
+                                    }
+                                  }
+                                },
+                                "url": {
+                                  "raw": "{{baseUrl}}/services/data/v66.0/composite/sobjects",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "services",
+                                    "data",
+                                    "v66.0",
+                                    "composite",
+                                    "sobjects"
+                                  ]
+                                }
+                              },
+                              "status": "Unauthorized",
+                              "code": 401,
+                              "_postman_previewlanguage": "json",
+                              "header": [
+                                {
+                                  "key": "Content-Type",
+                                  "value": "application/json"
+                                }
+                              ],
+                              "cookie": [],
+                              "body": "{\n  \"message\": \"Session expired or invalid\",\n  \"errorCode\": \"INVALID_SESSION_ID\"\n}"
+                            },
+                            {
+                              "name": "Internal Server Error",
+                              "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                  {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "key": "Accept",
+                                    "value": "application/json"
+                                  },
+                                  {
+                                    "description": "Added as a part of security scheme: bearer",
+                                    "key": "Authorization",
+                                    "value": "Bearer <token>"
+                                  }
+                                ],
+                                "body": {
+                                  "mode": "raw",
+                                  "raw": "{\n  \"allOrNone\": true,\n  \"records\": [\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref1\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3625\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 101950.69,\n      \"TMS_Receipt_Number__c\": 179\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref2\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3626\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 80650.65,\n      \"TMS_Receipt_Number__c\": 142\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref3\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3630\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 597188.5,\n      \"TMS_Receipt_Number__c\": 450\n    },\n    {\n      \"attributes\": {\n        \"type\": \"Temp_Shop_Unit_Summary_Sales_Trn__c\",\n        \"referenceId\": \"ref4\"\n      },\n      \"TMS_File_Name__c\": \"0903001_SALES_20251127135523.txt\",\n      \"TMS_Concession_Code__c\": \"00\",\n      \"TMS_Shop_Code__c\": \"0903001\",\n      \"TMS_Sequence__c\": 1,\n      \"TMS_Branch_Cdoe__c\": \"3631\",\n      \"TMS_Sales_Date__c\": \"2025-11-27\",\n      \"TMS_Sales_Type__c\": 1,\n      \"TMS_Sales_Amount__c\": 237097.8,\n      \"TMS_Receipt_Number__c\": 336\n    }\n  ]\n}",
+                                  "options": {
+                                    "raw": {
+                                      "headerFamily": "json",
+                                      "language": "json"
+                                    }
+                                  }
+                                },
+                                "url": {
+                                  "raw": "{{baseUrl}}/services/data/v66.0/composite/sobjects",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "services",
+                                    "data",
+                                    "v66.0",
+                                    "composite",
+                                    "sobjects"
+                                  ]
+                                }
+                              },
+                              "status": "Internal Server Error",
+                              "code": 500,
+                              "_postman_previewlanguage": "json",
+                              "header": [
+                                {
+                                  "key": "Content-Type",
+                                  "value": "application/json"
+                                }
+                              ],
+                              "cookie": [],
+                              "body": "{\n  \"message\": \"An internal server error occurred\",\n  \"errorCode\": \"UNKNOWN_EXCEPTION\"\n}"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://kingpowerinternationalgroupcoltd2--tmsdev.sandbox.my.salesforce.com"
+    }
+  ]
+}

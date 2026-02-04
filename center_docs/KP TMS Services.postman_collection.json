@@ -1,0 +1,86 @@
+{
+  "info": {
+    "_postman_id": "04426b94-e9bd-4939-8a56-ce344e60f736",
+    "name": "KP TMS Services",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "25125714"
+  },
+  "item": [
+    {
+      "name": "OAuth2.0 - Client Credential",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = JSON.parse(responseBody);\r",
+              "postman.setEnvironmentVariable(\"access_token\", jsonData.access_token);\r",
+              "postman.setEnvironmentVariable(\"sf_endpoint_instance\", jsonData.instance_url);\r",
+              "postman.setEnvironmentVariable(\"token_type\", jsonData.token_type);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "client_credentials",
+              "type": "text",
+              "uuid": "bec33cad-ede6-4513-9800-38d1e50d5526"
+            },
+            {
+              "key": "client_id",
+              "value": "3MVG9xw0daOIgBi7InNxUzGSaf09ViTSEuMM2I6GP5z.BSYdNVjWZcBw.ql9yQ8egBrc.PksmwAgGKKZac6CF",
+              "type": "text",
+              "uuid": "f606677a-cad0-4028-b254-33f2d2f2606a"
+            },
+            {
+              "key": "client_secret",
+              "value": "621DDFA81B2C0F0D4DA0AE9E50A87892A516FE750AFF4E8038284BFB7C3BD7D6",
+              "type": "text",
+              "uuid": "992d377b-b3d4-49d3-80fb-75cd2bd1a047"
+            },
+            {
+              "key": "",
+              "value": "",
+              "type": "text",
+              "uuid": "d615e6e1-0520-4047-a4b3-264aec67f4ca",
+              "disabled": true
+            }
+          ]
+        },
+        "url": {
+          "raw": "https://kingpowerinternationalgroupcoltd2--tmsdev.sandbox.my.salesforce.com/services/oauth2/token",
+          "protocol": "https",
+          "host": [
+            "kingpowerinternationalgroupcoltd2--tmsdev",
+            "sandbox",
+            "my",
+            "salesforce",
+            "com"
+          ],
+          "path": [
+            "services",
+            "oauth2",
+            "token"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
