@@ -54,3 +54,112 @@ config/airflow_variables.json
 salesforce/logs
 salesforce/data
 great_expectations/uncommitted
+
+# Secrets & Credentials (CRITICAL - NEVER COMMIT!)
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets/
+credentials/
+.secrets
+*.secret
+.env.local
+.env.*.local
+.env.production
+.env.development
+config/secrets.yaml
+config/secrets.json
+**/secret*.yaml
+**/secret*.json
+credentials.json
+service_account*.json
+
+# Salesforce Credentials & Data Loader
+salesforce/config/process-conf.xml
+salesforce/sf_encrypted_password.txt
+salesforce/dataloader.key
+salesforce/*.csv
+*.csv
+*.xlsx
+*.xls
+
+# Data Files (large/sensitive)
+*.sql.gz
+*.sql.bz2
+*.dump
+*.bak
+data/
+exports/
+imports/
+*.parquet
+*.avro
+
+# Test Artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+test-results/
+junit*.xml
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Docker
+docker-compose.override.yml
+docker-compose.local.yml
+.docker/
+
+# Airflow Extra
+airflow.db
+airflow.cfg.bak
+webserver_config.py
+*.pid
+scheduler/
+triggerer/
+
+# Logger & Debug
+*.log
+debug/
+*.trace
+
+# OS Generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.lnk
+Icon?
+
+# Backup Files
+*.bak
+*.backup
+*.old
+*~
+
+# Great Expectations Data Docs (large generated files)
+great_expectations/data_docs/
+great_expectations/checkpoints/
+great_expectations/plugins/
+
+# Cache
+.cache/
+*.cache
+
+# mypy / typing
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# Gemini AI Agent
+.gemini/
